@@ -4,3 +4,4 @@ project(cxxmodules CXX)
 set(CMAKE_CXX_STANDARD 20)
 
 add_subdirectory(simple)
+add_subdirectory(duplicates)
