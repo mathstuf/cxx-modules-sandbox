@@ -3,7 +3,4 @@ project(cxxmodules CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 
-add_library(modules
-    module.cpp
-    import.cpp
-    use.cpp)
+add_subdirectory(simple)
