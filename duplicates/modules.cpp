@@ -1,5 +1,5 @@
 export module M;
 
 export int m() {
-    return 0;
+    return 1;
 }
