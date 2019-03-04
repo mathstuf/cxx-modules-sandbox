@@ -2,3 +2,6 @@
 
 # Declare header units for internal targets.
 add_subdirectory(internal)
+
+# Declare modules for external dependencies.
+add_subdirectory(external)
