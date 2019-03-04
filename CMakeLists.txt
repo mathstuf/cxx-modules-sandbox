@@ -15,3 +15,6 @@ add_subdirectory(link-use-mask)
 # are not in the "provides" field of the .dd. It also says they
 # are required by ":parta" rather than fully qualified.
 #add_subdirectory(partitions)
+
+# The CMake APIs used here are not yet implemented.
+#add_subdirectory(header-units)
