@@ -1,0 +1,221 @@
+diff --git a/ChangeLog.modules b/ChangeLog.modules
+index 1900e884879..a123a70ac62 100644
+--- a/ChangeLog.modules
++++ b/ChangeLog.modules
+@@ -1,3 +1,19 @@
++2019-03-04  Ben Boeckel  <ben.boeckel@kitware.com>
++
++	gcc/
++	* gcc/c-family/c-opts.c (c_common_handle_option): Add -fdeps-format= argument.
++	(handle_deferred_opts): Error if trtbd output format is used with -MT or -MQ.
++	* gcc/c-family/c.opt: Ditto.
++	* doc/invoke.texi: Update modules documentation.
++
++	libcpp/
++	* cpplib.h: Add deps format enum and option storage.
++	* mkdeps. (deps_write_trtbd): Add
++	* init.c (cpp_finish): Add call for trtbd output deps format
++	* mkdeps.c (deps_write_trtbd): Add.
++	(trtbd_write_name): Add.
++	(trtbd_write_vec): Add.
++
+ 2019-03-04  Nathan Sidwell  <nathan@acm.org>
+ 
+ 	Cleanups.
+diff --git a/gcc/c-family/c-opts.c b/gcc/c-family/c-opts.c
+index 43cf6828536..708be0d44ec 100644
+--- a/gcc/c-family/c-opts.c
++++ b/gcc/c-family/c-opts.c
+@@ -348,6 +348,15 @@ c_common_handle_option (size_t scode, const char *arg, HOST_WIDE_INT value,
+       deps_file = arg;
+       break;
+ 
++    case OPT_fdep_format_:
++      if (!strcmp(arg, "make"))
++	cpp_opts->deps.format = DEPS_FMT_MAKE;
++      else if (!strcmp(arg, "trtbd"))
++	cpp_opts->deps.format = DEPS_FMT_TRtbd;
++      else
++	error ("-fdep-format= unknown format %s", arg);
++      break;
++
+     case OPT_MF:
+       deps_seen = true;
+       deps_file = arg;
+@@ -1294,7 +1303,12 @@ handle_deferred_opts (void)
+ 	struct deferred_opt *opt = &deferred_opts[i];
+ 
+ 	if (opt->code == OPT_MT || opt->code == OPT_MQ)
+-	  deps_add_target (deps, opt->arg, opt->code == OPT_MQ);
++	  {
++	    if (cpp_opts->deps.format == DEPS_FMT_MAKE)
++	      deps_add_target (deps, opt->arg, opt->code == OPT_MQ);
++	    else
++	      error ("-MT and -MQ are not compatible with non-make dependency formats");
++	  }
+       }
+ }
+ 
+diff --git a/gcc/c-family/c.opt b/gcc/c-family/c.opt
+index bab1642fa2a..c03da4cc55c 100644
+--- a/gcc/c-family/c.opt
++++ b/gcc/c-family/c.opt
+@@ -248,6 +248,10 @@ MT
+ C ObjC C++ ObjC++ Joined Separate MissingArgError(missing makefile target after %qs)
+ -MT <target>	Add an unquoted target.
+ 
++fdep-format=
++C ObjC C++ ObjC++ NoDriverArg Joined MissingArgError(missing format after %qs)
++Format for output dependency information. Supported (\"make\" (the default), and \"trtbd\").
++
+ P
+ C ObjC C++ ObjC++
+ Do not generate #line directives.
+diff --git a/libcpp/include/cpplib.h b/libcpp/include/cpplib.h
+index e44df154c89..34474678ed8 100644
+--- a/libcpp/include/cpplib.h
++++ b/libcpp/include/cpplib.h
+@@ -294,6 +294,9 @@ typedef CPPCHAR_SIGNED_T cppchar_signed_t;
+ /* Style of header dependencies to generate.  */
+ enum cpp_deps_style { DEPS_NONE = 0, DEPS_USER, DEPS_SYSTEM };
+ 
++/* Format of header dependencies to generate.  */
++enum cpp_deps_format { DEPS_FMT_MAKE = 0, DEPS_FMT_TRtbd };
++
+ /* The possible normalization levels, from most restrictive to least.  */
+ enum cpp_normalize_level {
+   /* In NFKC.  */
+@@ -514,6 +517,9 @@ struct cpp_options
+     /* Style of header dependencies to generate.  */
+     enum cpp_deps_style style;
+ 
++    /* Format of header dependencies to generate.  */
++    enum cpp_deps_format format;
++
+     /* Assume missing files are generated files.  */
+     bool missing_files;
+ 
+diff --git a/libcpp/include/mkdeps.h b/libcpp/include/mkdeps.h
+index 7f8f429d0a0..6486dd0182f 100644
+--- a/libcpp/include/mkdeps.h
++++ b/libcpp/include/mkdeps.h
+@@ -62,6 +62,9 @@ extern void deps_add_module (struct mrules *, const char *, const char *,
+    is the number of columns to word-wrap at (0 means don't wrap).  */
+ extern void deps_write (const struct mrules *, FILE *, bool, unsigned int);
+ 
++/* Write out a deps buffer to a specified file in TRtbd format.  */
++extern void deps_write_trtbd (const struct mrules *, FILE *);
++
+ /* Write out a deps buffer to a file, in a form that can be read back
+    with deps_restore.  Returns nonzero on error, in which case the
+    error number will be in errno.  */
+diff --git a/libcpp/init.c b/libcpp/init.c
+index 86b015929e7..eb59e8a8630 100644
+--- a/libcpp/init.c
++++ b/libcpp/init.c
+@@ -763,8 +763,14 @@ cpp_finish (cpp_reader *pfile, FILE *deps_stream)
+ 
+   if (CPP_OPTION (pfile, deps.style) != DEPS_NONE
+       && deps_stream)
+-    deps_write (pfile->deps, deps_stream,
+-		CPP_OPTION (pfile, deps.phony_targets), 72);
++    {
++      cpp_deps_format format = CPP_OPTION (pfile, deps.format);
++      if (format == DEPS_FMT_MAKE)
++	deps_write (pfile->deps, deps_stream,
++		    CPP_OPTION (pfile, deps.phony_targets), 72);
++      else if (format == DEPS_FMT_TRtbd)
++	deps_write_trtbd (pfile->deps, deps_stream);
++    }
+ 
+   /* Report on headers that could use multiple include guards.  */
+   if (CPP_OPTION (pfile, print_include_names))
+diff --git a/libcpp/mkdeps.c b/libcpp/mkdeps.c
+index 2e40dbca7c8..7e14c92d717 100644
+--- a/libcpp/mkdeps.c
++++ b/libcpp/mkdeps.c
+@@ -329,9 +329,13 @@ deps_add_module (struct mrules *d, const char *m, const char *p,
+     memcpy (m_name + m_len, p, p_len + 1);
+   if (bmi)
+     {
++      size_t bmi_len = strlen (bmi);
++      char *bmi_name = XNEWVEC (char, bmi_len + 1);
++      memcpy (bmi_name, bmi, bmi_len + 1);
++
+       d->module_name = m;
+       d->is_legacy = is_legacy;
+-      d->bmi_name = *bmi ? bmi : NULL;
++      d->bmi_name = bmi_name;
+     }
+   else
+     d->modules.push (m);
+@@ -445,6 +449,69 @@ deps_write (const struct mrules *d, FILE *fp, bool phony, unsigned int colmax)
+   make_write (d, fp, phony, colmax);
+ }
+ 
++static void
++trtbd_write_name (const char *name, FILE *fp)
++{
++  fputc ('"', fp);
++  for (const char* c = name; *c; c++)
++    {
++      if (*c == '"' || *c == '\\')
++	fputc ('\\', fp);
++      fputc (*c, fp);
++    }
++  fputc ('"', fp);
++}
++
++static void
++trtbd_write_vec (const mrules::vec<const char *> &vec, FILE *fp)
++{
++  for (unsigned ix = 0; ix != vec.size (); ix++)
++    {
++      trtbd_write_name (vec[ix], fp);
++      if (ix < vec.size () - 1)
++	fputc (',', fp);
++      fputc ('\n', fp);
++    }
++}
++
++void
++deps_write_trtbd (const struct mrules *d, FILE *fp)
++{
++  fputs ("{\n", fp);
++
++  fputs ("\"outputs\": [\n", fp);
++  trtbd_write_vec (d->targets, fp);
++  fputs ("],\n", fp);
++
++  if (d->bmi_name)
++    {
++      fputs ("\"provides\": [\n", fp);
++      trtbd_write_name (d->bmi_name, fp);
++      fputs ("\n],\n", fp);
++
++      if (d->module_name)
++	{
++	  fputs ("\"logical-provides\": {\n", fp);
++	  trtbd_write_name (d->module_name, fp);
++	  fputs (": ", fp);
++	  trtbd_write_name (d->bmi_name, fp);
++	  fputs ("\n},\n", fp);
++	}
++    }
++
++  fputs ("\"requires\": [\n", fp);
++  trtbd_write_vec (d->modules, fp);
++  fputs ("],\n", fp);
++
++  fputs ("\"depends\": [\n", fp);
++  trtbd_write_vec (d->deps, fp);
++  fputs ("],\n", fp);
++
++  fputs ("\"version\": 1\n", fp);
++
++  fputs ("}\n", fp);
++}
++
+ /* Write out a deps buffer to a file, in a form that can be read back
+    with deps_restore.  Returns nonzero on error, in which case the
+    error number will be in errno.  */
