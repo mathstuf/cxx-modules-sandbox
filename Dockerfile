@@ -27,5 +27,6 @@ RUN sh /home/modules/install_gcc.sh
 
 RUN git clone https://gitlab.kitware.com/ben.boeckel/cxx-modules-sandbox.git /home/modules/code/cxx-modules-sandbox/src
 WORKDIR /home/modules
+COPY README /home/modules/README
 COPY build-env.sh /home/modules/build-env.sh
 ENTRYPOINT ["/home/modules/build-env.sh", "/bin/sh"]

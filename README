@@ -1,0 +1,32 @@
+This Docker image contains the relevant code in order to compile C++ modules
+using CMake and its Ninja generator.
+
+GCC is installed into `/home/modules/misc/root/gcc` and CMake and `ninja` are
+installed into `/home/modules/misc/root/cmake`. The image may be run using
+`docker run -it $image` which will add these roots to `$PATH` automatically.
+
+There is an example repository in `/home/modules/code/cxx-modules-sandbox/src`
+which contains example code showing the viability of the tools. Note that there
+are some restrictions:
+
+  - GCC may not support all module features. Please see this page for
+    information related to the current status:
+
+      https://gcc.gnu.org/wiki/cxx-modules
+
+  - CMake does not support `import <header-unit>;` or `import "header-unit";`
+    yet. There is example syntax for it in the example repository, but it is
+    not valid CMake code (yet).
+  - Installing and consuming external modules is not yet supported. This is
+    related to header unit modules and they will likely end up with similar
+    solutions (differing in details).
+
+Merge requests and issues with the features not present in the base tools may
+be sent to the following repositories:
+
+  - CMake: https://gitlab.kitware.com/ben.boeckel/cmake/
+  - Ninja: https://github.com/kitware/ninja/ (or email me at `Ben Boeckel
+    <ben.boeckel@kitware.com>`)
+  - This repository: https://gitlab.kitware.com/ben.boeckel/cxx-modules-sandbox
+    * Contains the Dockerfile for creating this image as well as the example
+      code cloned into the image.
