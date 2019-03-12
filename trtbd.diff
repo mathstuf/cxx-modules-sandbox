@@ -1,78 +1,228 @@
 diff --git a/ChangeLog.modules b/ChangeLog.modules
-index 1900e884879..a123a70ac62 100644
+index 11c1b9b78ad..9e59f0174d3 100644
 --- a/ChangeLog.modules
 +++ b/ChangeLog.modules
-@@ -1,3 +1,19 @@
-+2019-03-04  Ben Boeckel  <ben.boeckel@kitware.com>
+@@ -1,3 +1,31 @@
++2019-03-12  Ben Boeckel  <ben.boeckel@kitware.com>
 +
 +	gcc/
-+	* gcc/c-family/c-opts.c (c_common_handle_option): Add -fdeps-format= argument.
-+	(handle_deferred_opts): Error if trtbd output format is used with -MT or -MQ.
++	* gcc/c-family/c-opts.c (c_common_handle_option): Add -fdeps-{file,format,output}= argument.
++	(handle_deferred_opts): Handle -fdep-output= argument.
++	(c_common_finish): Handle -fdep-output= argument.
 +	* gcc/c-family/c.opt: Ditto.
-+	* doc/invoke.texi: Update modules documentation.
++	* doc/invoke.texi: Add documentation for new flags.
++        * fortran/cpp.c: (gfc_cpp_done): Update for new cpp_finish signature.
++        * genmatch.c: (add_operator): Ditto.
++        * input.c: (test_lexer): Ditto.
++        (cpp_reader_ptr::~cpp_reader_ptr): Ditto.
 +
 +	libcpp/
 +	* cpplib.h: Add deps format enum and option storage.
-+	* mkdeps. (deps_write_trtbd): Add
++        (cpp_finish): Add structured dependency stream argument.
++	* mkdeps. (deps_write_trtbd): Declare.
++        (deps_add_output): Declare.
++        (deps_write): Add argument to suppress module information.
 +	* init.c (cpp_finish): Add call for trtbd output deps format
-+	* mkdeps.c (deps_write_trtbd): Add.
-+	(trtbd_write_name): Add.
-+	(trtbd_write_vec): Add.
++	* mkdeps.c (deps_add_module): Allocate bmi_name properly.
++        (mrules): add outputs vector.
++        (deps_add_output): Add.
++        (is_utf8): Add.
++        (trtbd_write_filepath): Add.
++        (trtbd_write_vec): Add.
++        (deps_write_trtbd): Add.
 +
- 2019-03-04  Nathan Sidwell  <nathan@acm.org>
+ 2019-03-08  Nathan Sidwell  <nathan@acm.org>
  
- 	Cleanups.
+ 	gcc/cp/
 diff --git a/gcc/c-family/c-opts.c b/gcc/c-family/c-opts.c
-index 43cf6828536..708be0d44ec 100644
+index 43cf6828536..1f29687f28c 100644
 --- a/gcc/c-family/c-opts.c
 +++ b/gcc/c-family/c-opts.c
-@@ -348,6 +348,15 @@ c_common_handle_option (size_t scode, const char *arg, HOST_WIDE_INT value,
+@@ -76,6 +76,9 @@ static bool verbose;
+ /* Dependency output file.  */
+ static const char *deps_file;
+ 
++/* Enhanced dependency output file.  */
++static const char *fdeps_file;
++
+ /* The prefix given by -iprefix, if any.  */
+ static const char *iprefix;
+ 
+@@ -348,6 +351,23 @@ c_common_handle_option (size_t scode, const char *arg, HOST_WIDE_INT value,
        deps_file = arg;
        break;
  
 +    case OPT_fdep_format_:
-+      if (!strcmp(arg, "make"))
-+	cpp_opts->deps.format = DEPS_FMT_MAKE;
-+      else if (!strcmp(arg, "trtbd"))
++      if (!strcmp(arg, "trtbd"))
 +	cpp_opts->deps.format = DEPS_FMT_TRtbd;
 +      else
 +	error ("-fdep-format= unknown format %s", arg);
 +      break;
 +
++    case OPT_fdep_file_:
++      deps_seen = true;
++      fdeps_file = arg;
++      break;
++
++    case OPT_fdep_output_:
++      deps_seen = true;
++      defer_opt (code, arg);
++      break;
++
      case OPT_MF:
        deps_seen = true;
        deps_file = arg;
-@@ -1294,7 +1303,12 @@ handle_deferred_opts (void)
- 	struct deferred_opt *opt = &deferred_opts[i];
+@@ -1199,6 +1219,7 @@ void
+ c_common_finish (void)
+ {
+   FILE *deps_stream = NULL;
++  FILE *fdeps_stream = NULL;
+ 
+   /* Note that we write the dependencies even if there are errors. This is
+      useful for handling outdated generated headers that now trigger errors
+@@ -1221,9 +1242,24 @@ c_common_finish (void)
+ 	}
+     }
+ 
++  if (cpp_opts->deps.format != DEPS_FMT_NONE)
++    {
++      if (!fdeps_file)
++	fdeps_stream = out_stream;
++      else if (fdeps_file[0] == '-' && fdeps_file[1] == '\0')
++	fdeps_stream = stdout;
++      else
++	{
++	  fdeps_stream = fopen (fdeps_file, "w");
++	  if (!fdeps_stream)
++	    fatal_error (input_location, "opening dependency file %s: %m",
++			 fdeps_file);
++	}
++    }
++
+   /* For performance, avoid tearing down cpplib's internal structures
+      with cpp_destroy ().  */
+-  cpp_finish (parse_in, deps_stream);
++  cpp_finish (parse_in, deps_stream, fdeps_stream);
+ 
+   if (deps_stream && deps_stream != out_stream && deps_stream != stdout
+       && (ferror (deps_stream) || fclose (deps_stream)))
+@@ -1295,6 +1331,8 @@ handle_deferred_opts (void)
  
  	if (opt->code == OPT_MT || opt->code == OPT_MQ)
--	  deps_add_target (deps, opt->arg, opt->code == OPT_MQ);
-+	  {
-+	    if (cpp_opts->deps.format == DEPS_FMT_MAKE)
-+	      deps_add_target (deps, opt->arg, opt->code == OPT_MQ);
-+	    else
-+	      error ("-MT and -MQ are not compatible with non-make dependency formats");
-+	  }
+ 	  deps_add_target (deps, opt->arg, opt->code == OPT_MQ);
++	else if (opt->code == OPT_fdep_output_)
++	  deps_add_output (deps, opt->arg);
        }
  }
  
 diff --git a/gcc/c-family/c.opt b/gcc/c-family/c.opt
-index bab1642fa2a..c03da4cc55c 100644
+index bab1642fa2a..84b1485573c 100644
 --- a/gcc/c-family/c.opt
 +++ b/gcc/c-family/c.opt
-@@ -248,6 +248,10 @@ MT
+@@ -248,6 +248,18 @@ MT
  C ObjC C++ ObjC++ Joined Separate MissingArgError(missing makefile target after %qs)
  -MT <target>	Add an unquoted target.
  
 +fdep-format=
 +C ObjC C++ ObjC++ NoDriverArg Joined MissingArgError(missing format after %qs)
-+Format for output dependency information. Supported (\"make\" (the default), and \"trtbd\").
++Format for output dependency information. Supported (\"trtbd\").
++
++fdep-file=
++C ObjC C++ ObjC++ NoDriverArg Joined MissingArgError(missing output path after %qs)
++File for output dependency information.
++
++fdep-output=
++C ObjC C++ ObjC++ NoDriverArg Joined MissingArgError(missing path after %qs)
++-fdep-output=obj.o Output file for the compile step.
 +
  P
  C ObjC C++ ObjC++
  Do not generate #line directives.
+diff --git a/gcc/doc/invoke.texi b/gcc/doc/invoke.texi
+index 14e37e09186..335ef456039 100644
+--- a/gcc/doc/invoke.texi
++++ b/gcc/doc/invoke.texi
+@@ -2676,6 +2676,21 @@ An oracle to query for module name to filename mappings.  If
+ unspecified the @env{CXX_MODULE_MAPPER} environment variable is used,
+ and if that is unset, a default is provided.
+ 
++@item -fdep-file=@var{file}
++@opindex fdep-file
++Where to write structured dependency information.
++
++@item -fdep-format=@var{format}
++@opindex fdep-format
++The format to use for structured dependency information. @samp{trtbd} is the
++only supported format right now. Note that when this argument is specified, the
++output of @samp{-MF} is stripped of some information (namely C++ modules) so
++that it does not use extended makefile syntax not understood by most tools.
++
++@item -fdep-output=@var{file}
++@opindex fdep-output
++Analogous to @option{-MT} but for structured dependency information.
++
+ @item -fms-extensions
+ @opindex fms-extensions
+ Disable Wpedantic warnings about constructs used in MFC, such as implicit
+diff --git a/gcc/fortran/cpp.c b/gcc/fortran/cpp.c
+index 98f7b2e307c..b12d87ae076 100644
+--- a/gcc/fortran/cpp.c
++++ b/gcc/fortran/cpp.c
+@@ -683,7 +683,7 @@ gfc_cpp_done (void)
+ 	  FILE *f = fopen (gfc_cpp_option.deps_filename, "w");
+ 	  if (f)
+ 	    {
+-	      cpp_finish (cpp_in, f);
++	      cpp_finish (cpp_in, f, NULL);
+ 	      fclose (f);
+ 	    }
+ 	  else
+@@ -692,7 +692,7 @@ gfc_cpp_done (void)
+ 			     xstrerror (errno));
+ 	}
+       else
+-	cpp_finish (cpp_in, stdout);
++	cpp_finish (cpp_in, stdout, NULL);
+     }
+ 
+   cpp_undef_all (cpp_in);
+diff --git a/gcc/genmatch.c b/gcc/genmatch.c
+index 7b9b09c7d8b..da445d43dbc 100644
+--- a/gcc/genmatch.c
++++ b/gcc/genmatch.c
+@@ -5162,7 +5162,7 @@ add_operator (VIEW_CONVERT2, "view_convert2", "tcc_unary", 1);
+   dt.gen (stdout, gimple);
+ 
+   /* Finalize.  */
+-  cpp_finish (r, NULL);
++  cpp_finish (r, NULL, NULL);
+   cpp_destroy (r);
+ 
+   delete operators;
+diff --git a/gcc/input.c b/gcc/input.c
+index c589d70c2bb..2199e6e8e16 100644
+--- a/gcc/input.c
++++ b/gcc/input.c
+@@ -2041,7 +2041,7 @@ test_lexer (const line_table_case &case_)
+   ASSERT_NE (tok, NULL);
+   ASSERT_EQ (tok->type, CPP_EOF);
+ 
+-  cpp_finish (parser, NULL);
++  cpp_finish (parser, NULL, NULL);
+   cpp_destroy (parser);
+ }
+ 
+@@ -2072,7 +2072,7 @@ class cpp_reader_ptr
+ 
+   ~cpp_reader_ptr ()
+   {
+-    cpp_finish (m_ptr, NULL);
++    cpp_finish (m_ptr, NULL, NULL);
+     cpp_destroy (m_ptr);
+   }
+ 
 diff --git a/libcpp/include/cpplib.h b/libcpp/include/cpplib.h
-index e44df154c89..34474678ed8 100644
+index e44df154c89..007e13de9c8 100644
 --- a/libcpp/include/cpplib.h
 +++ b/libcpp/include/cpplib.h
 @@ -294,6 +294,9 @@ typedef CPPCHAR_SIGNED_T cppchar_signed_t;
@@ -80,7 +230,7 @@ index e44df154c89..34474678ed8 100644
  enum cpp_deps_style { DEPS_NONE = 0, DEPS_USER, DEPS_SYSTEM };
  
 +/* Format of header dependencies to generate.  */
-+enum cpp_deps_format { DEPS_FMT_MAKE = 0, DEPS_FMT_TRtbd };
++enum cpp_deps_format { DEPS_FMT_NONE = 0, DEPS_FMT_TRtbd };
 +
  /* The possible normalization levels, from most restrictive to least.  */
  enum cpp_normalize_level {
@@ -95,46 +245,120 @@ index e44df154c89..34474678ed8 100644
      /* Assume missing files are generated files.  */
      bool missing_files;
  
+@@ -994,9 +1000,9 @@ extern void cpp_post_options (cpp_reader *);
+ extern void cpp_init_iconv (cpp_reader *);
+ 
+ /* Call this to finish preprocessing.  If you requested dependency
+-   generation, pass an open stream to write the information to,
+-   otherwise NULL.  It is your responsibility to close the stream.  */
+-extern void cpp_finish (cpp_reader *, FILE *deps_stream);
++   generation, pass open stream(s) to write the information to,
++   otherwise NULL.  It is your responsibility to close the stream(s).  */
++extern void cpp_finish (cpp_reader *, FILE *deps_stream, FILE *fdeps_stream);
+ 
+ /* Call this to release the handle at the end of preprocessing.  Any
+    use of the handle after this function returns is invalid.  */
 diff --git a/libcpp/include/mkdeps.h b/libcpp/include/mkdeps.h
-index 7f8f429d0a0..6486dd0182f 100644
+index 7f8f429d0a0..b3443a10c21 100644
 --- a/libcpp/include/mkdeps.h
 +++ b/libcpp/include/mkdeps.h
-@@ -62,6 +62,9 @@ extern void deps_add_module (struct mrules *, const char *, const char *,
-    is the number of columns to word-wrap at (0 means don't wrap).  */
- extern void deps_write (const struct mrules *, FILE *, bool, unsigned int);
+@@ -49,6 +49,9 @@ extern void deps_add_target (struct mrules *, const char *, int);
+    string as the default target is interpreted as stdin.  */
+ extern void deps_add_default_target (struct mrules *, const char *);
  
++/* Add an output. */
++extern void deps_add_output (struct mrules *, const char *);
++
+ /* Add a dependency (appears on the right side of the colon) to the
+    deps list.  Dependencies will be printed in the order that they
+    were entered with this function.  By convention, the first
+@@ -59,8 +62,13 @@ extern void deps_add_module (struct mrules *, const char *, const char *,
+ 			     const char * = NULL, bool = false);
+ 
+ /* Write out a deps buffer to a specified file.  The fourth argument
+-   is the number of columns to word-wrap at (0 means don't wrap).  */
+-extern void deps_write (const struct mrules *, FILE *, bool, unsigned int);
++   is the number of columns to word-wrap at (0 means don't wrap).
++   The last argument indicates whether to output extra information
++   (namely modules).  */
++extern void deps_write (const struct mrules *, FILE *, bool, unsigned int, int);
++
 +/* Write out a deps buffer to a specified file in TRtbd format.  */
 +extern void deps_write_trtbd (const struct mrules *, FILE *);
-+
+ 
  /* Write out a deps buffer to a file, in a form that can be read back
     with deps_restore.  Returns nonzero on error, in which case the
-    error number will be in errno.  */
 diff --git a/libcpp/init.c b/libcpp/init.c
-index 86b015929e7..eb59e8a8630 100644
+index 86b015929e7..2ce55037d47 100644
 --- a/libcpp/init.c
 +++ b/libcpp/init.c
-@@ -763,8 +763,14 @@ cpp_finish (cpp_reader *pfile, FILE *deps_stream)
+@@ -747,7 +747,7 @@ read_original_directory (cpp_reader *pfile)
+    Maybe it should also reset state, such that you could call
+    cpp_start_read with a new filename to restart processing.  */
+ void
+-cpp_finish (cpp_reader *pfile, FILE *deps_stream)
++cpp_finish (cpp_reader *pfile, FILE *deps_stream, FILE *fdeps_stream)
+ {
+   /* Warn about unused macros before popping the final buffer.  */
+   if (CPP_OPTION (pfile, warn_unused_macros))
+@@ -761,10 +761,17 @@ cpp_finish (cpp_reader *pfile, FILE *deps_stream)
+   while (pfile->buffer)
+     _cpp_pop_buffer (pfile);
  
++  cpp_deps_format deps_format = CPP_OPTION (pfile, deps.format);
++  if (deps_format == DEPS_FMT_TRtbd && fdeps_stream)
++    deps_write_trtbd (pfile->deps, fdeps_stream);
++
    if (CPP_OPTION (pfile, deps.style) != DEPS_NONE
        && deps_stream)
 -    deps_write (pfile->deps, deps_stream,
 -		CPP_OPTION (pfile, deps.phony_targets), 72);
 +    {
-+      cpp_deps_format format = CPP_OPTION (pfile, deps.format);
-+      if (format == DEPS_FMT_MAKE)
-+	deps_write (pfile->deps, deps_stream,
-+		    CPP_OPTION (pfile, deps.phony_targets), 72);
-+      else if (format == DEPS_FMT_TRtbd)
-+	deps_write_trtbd (pfile->deps, deps_stream);
++      deps_write (pfile->deps, deps_stream,
++		  CPP_OPTION (pfile, deps.phony_targets), 72,
++		  deps_format == DEPS_FMT_NONE);
 +    }
  
    /* Report on headers that could use multiple include guards.  */
    if (CPP_OPTION (pfile, print_include_names))
 diff --git a/libcpp/mkdeps.c b/libcpp/mkdeps.c
-index 2e40dbca7c8..7e14c92d717 100644
+index 2e40dbca7c8..f90cd407ee4 100644
 --- a/libcpp/mkdeps.c
 +++ b/libcpp/mkdeps.c
-@@ -329,9 +329,13 @@ deps_add_module (struct mrules *d, const char *m, const char *p,
+@@ -85,6 +85,8 @@ public:
+ 
+     for (i = targets.size (); i--;)
+       XDELETEVEC (targets[i]);
++    for (i = outputs.size (); i--;)
++      XDELETEVEC (outputs[i]);
+     for (i = deps.size (); i--;)
+       XDELETEVEC (deps[i]);
+     for (i = vpath.size (); i--;)
+@@ -97,6 +99,7 @@ public:
+ 
+ public:
+   vec<const char *> targets;
++  vec<const char *> outputs;
+   vec<const char *> deps;
+   vec<velt> vpath;
+   vec<const char *> modules;
+@@ -286,6 +289,15 @@ deps_add_default_target (struct mrules *d, const char *tgt)
+     }
+ }
+ 
++/* Adds an output O.  We make a copy, so it need not be a permanent
++   string.  */
++void
++deps_add_output (struct mrules *d, const char *o)
++{
++  o = apply_vpath (d, o);
++  d->outputs.push (xstrdup (o));
++}
++
+ void
+ deps_add_dep (struct mrules *d, const char *t)
+ {
+@@ -329,9 +341,13 @@ deps_add_module (struct mrules *d, const char *m, const char *p,
      memcpy (m_name + m_len, p, p_len + 1);
    if (bmi)
      {
@@ -149,21 +373,192 @@ index 2e40dbca7c8..7e14c92d717 100644
      }
    else
      d->modules.push (m);
-@@ -445,6 +449,69 @@ deps_write (const struct mrules *d, FILE *fp, bool phony, unsigned int colmax)
-   make_write (d, fp, phony, colmax);
+@@ -373,7 +389,7 @@ make_write_vec (const mrules::vec<const char *> &vec, FILE *fp,
  }
  
-+static void
-+trtbd_write_name (const char *name, FILE *fp)
+ static void
+-make_write (const struct mrules *d, FILE *fp, bool phony, unsigned int colmax)
++make_write (const struct mrules *d, FILE *fp, bool phony, unsigned int colmax, int extra)
+ {
+   unsigned column = 0;
+   if (colmax && colmax < 34)
+@@ -382,7 +398,7 @@ make_write (const struct mrules *d, FILE *fp, bool phony, unsigned int colmax)
+   if (d->deps.size ())
+     {
+       column = make_write_vec (d->targets, fp, 0, colmax, d->quote_lwm);
+-      if (d->bmi_name)
++      if (extra && d->bmi_name)
+ 	column = make_write_name (d->bmi_name, fp, column, colmax);
+       fputs (":", fp);
+       column++;
+@@ -393,7 +409,7 @@ make_write (const struct mrules *d, FILE *fp, bool phony, unsigned int colmax)
+ 	  fprintf (fp, "%s:\n", munge (d->deps[i]));
+     }
+ 
+-  if (d->modules.size ())
++  if (extra && d->modules.size ())
+     {
+       column = make_write_vec (d->targets, fp, 0, colmax, d->quote_lwm);
+       if (d->bmi_name)
+@@ -404,7 +420,7 @@ make_write (const struct mrules *d, FILE *fp, bool phony, unsigned int colmax)
+       fputs ("\n", fp);
+     }
+ 
+-  if (d->module_name)
++  if (extra && d->module_name)
+     {
+       if (d->bmi_name)
+ 	{
+@@ -431,7 +447,7 @@ make_write (const struct mrules *d, FILE *fp, bool phony, unsigned int colmax)
+ 	}
+     }
+   
+-  if (d->modules.size ())
++  if (extra && d->modules.size ())
+     {
+       column = fprintf (fp, "CXX_IMPORTS +=");
+       make_write_vec (d->modules, fp, column, colmax, 0, ".c++m");
+@@ -440,9 +456,231 @@ make_write (const struct mrules *d, FILE *fp, bool phony, unsigned int colmax)
+ }
+ 
+ void
+-deps_write (const struct mrules *d, FILE *fp, bool phony, unsigned int colmax)
++deps_write (const struct mrules *d, FILE *fp, bool phony, unsigned int colmax, int extra)
 +{
-+  fputc ('"', fp);
++  make_write (d, fp, phony, colmax, extra);
++}
++
++static bool
++is_utf8 (const char *name)
++{
++  int byte_length = 0;
++  int expected_continuations = 0;
++  uint32_t codepoint = 0;
++
 +  for (const char* c = name; *c; c++)
 +    {
-+      if (*c == '"' || *c == '\\')
-+	fputc ('\\', fp);
-+      fputc (*c, fp);
++      int byte = *c;
++
++      // Check for a continuation character.
++      if ((byte & 0xc0) == 0x80)
++	{
++	  --expected_continuations;
++
++	  if (expected_continuations < 0)
++	    return false;
++
++	  // Add the encoded bits to the codepoint.
++	  codepoint = (codepoint << 6) + (byte & ~0x3f);
++
++	  continue;
++	}
++
++      // Make sure we don't expect more continuation characters
++      // once we don't find one.
++      if (expected_continuations != 0)
++	return false;
++
++      // Invalid because if they appear, it is an attempt to encode an ASCII
++      // character in 2 bytes.
++      if (byte == 0xc0 || byte == 0xc1)
++	return false;
++
++      // Invalid because they would encode codepoints greater than allowed
++      // (0x10FFFF).
++      if (byte > 0xf4)
++	return false;
++
++      // ED-prefixed sequence encoding UTF-16 surrogate halves.
++      if (0xD0FF <= codepoint && codepoint <= 0xDFFF)
++	return false;
++
++      // 0x10FFFF is the highest valid codepoint for UTF-8.
++      if (0x10FFFF < codepoint)
++	return false;
++
++      // Overlong encoding of a codepoint.
++      if (byte_length == 2 && codepoint < 0x0800)
++	return false;
++      if (byte_length == 3 && codepoint < 0x10000)
++	return false;
++
++      // Single byte character.
++      if ((byte & 0x80) == 0x00)
++	{
++	  codepoint = byte;
++	  byte_length = expected_continuations = 0;
++	}
++      // Prefix codes.
++      else if ((byte & 0xe0) == 0xc0)
++	{
++	  codepoint = byte & 0x1f;
++	  byte_length = expected_continuations = 1;
++	}
++      else if ((byte & 0xf0) == 0xe0)
++	{
++	  codepoint = byte & 0x0f;
++	  byte_length = expected_continuations = 2;
++	}
++      else if ((byte & 0xf8) == 0xf0)
++	{
++	  codepoint = byte & 0x07;
++	  byte_length = expected_continuations = 3;
++	}
++      else
++	return false;
 +    }
-+  fputc ('"', fp);
++
++  if (expected_continuations != 0)
++    return false;
++
++  return true;
++}
++
++static void
++trtbd_write_filepath (const char *name, FILE *fp)
+ {
+-  make_write (d, fp, phony, colmax);
++  if (is_utf8 (name))
++    {
++      fputc ('"', fp);
++      for (const char* c = name; *c; c++)
++	{
++	  // Escape control characters.
++	  if (*c < ' ')
++	    fprintf (fp, "\\u%04x", *c);
++	  // URL-encode `%`.
++	  else if (*c == '%')
++	    fprintf (fp, "%%%02x", *c);
++	  // JSON escape characters.
++	  else if (*c == '"' || *c == '\\')
++	    {
++	      fputc ('\\', fp);
++	      fputc (*c, fp);
++	    }
++	  // Everything else.
++	  else
++	    fputc (*c, fp);
++	}
++      fputc ('"', fp);
++    }
++  else
++    {
++      fputs ("{\n", fp);
++
++      // 8-bit raw data.
++      fputs ("\"format\": \"raw8\",\n", fp);
++      fputs ("\"data\": [\n", fp);
++
++      // Output the bytes of the filepath as an array of integers.
++      const char* c = name;
++      fprintf (fp, "%d", *c);
++      for (++c; *c; c++)
++	fprintf (fp, ",%d", *c);
++
++      fputs ("]\n", fp);
++
++      fputs ("}", fp);
++    }
 +}
 +
 +static void
@@ -171,7 +566,7 @@ index 2e40dbca7c8..7e14c92d717 100644
 +{
 +  for (unsigned ix = 0; ix != vec.size (); ix++)
 +    {
-+      trtbd_write_name (vec[ix], fp);
++      trtbd_write_filepath (vec[ix], fp);
 +      if (ix < vec.size () - 1)
 +	fputc (',', fp);
 +      fputc ('\n', fp);
@@ -183,39 +578,77 @@ index 2e40dbca7c8..7e14c92d717 100644
 +{
 +  fputs ("{\n", fp);
 +
++  fputs ("\"sources\": [\n", fp);
++  fputs ("{\n", fp);
++
++  fputs ("\"input\": ", fp);
++  trtbd_write_filepath (d->deps[0], fp);
++  fputs (",\n", fp);
++
 +  fputs ("\"outputs\": [\n", fp);
 +  trtbd_write_vec (d->targets, fp);
 +  fputs ("],\n", fp);
 +
-+  if (d->bmi_name)
-+    {
-+      fputs ("\"provides\": [\n", fp);
-+      trtbd_write_name (d->bmi_name, fp);
-+      fputs ("\n],\n", fp);
++  fputs ("\"future-compile\": {\n", fp);
 +
-+      if (d->module_name)
++  if (d->outputs.size ())
++    {
++      fputs ("\"outputs\": [\n", fp);
++      trtbd_write_vec (d->outputs, fp);
++      if (d->bmi_name)
 +	{
-+	  fputs ("\"logical-provides\": {\n", fp);
-+	  trtbd_write_name (d->module_name, fp);
-+	  fputs (": ", fp);
-+	  trtbd_write_name (d->bmi_name, fp);
-+	  fputs ("\n},\n", fp);
++	  fputs (",\n", fp);
++	  trtbd_write_filepath (d->bmi_name, fp);
++	  fputc ('\n', fp);
++	}
++      fputs ("],\n", fp);
++
++      if (d->bmi_name)
++	{
++	  fputs ("\"provides\": [\n", fp);
++	  fputs ("{\n", fp);
++
++	  fputs ("\"filepath\": ", fp);
++	  trtbd_write_filepath (d->bmi_name, fp);
++	  fputs (",\n", fp);
++
++	  fputs ("\"logical\": ", fp);
++	  trtbd_write_filepath (d->module_name, fp);
++	  fputs ("\n", fp);
++
++	  fputs ("}\n", fp);
++	  fputs ("],\n", fp);
 +	}
 +    }
 +
 +  fputs ("\"requires\": [\n", fp);
-+  trtbd_write_vec (d->modules, fp);
-+  fputs ("],\n", fp);
++  for (size_t i = 0; i < d->modules.size (); i++)
++    {
++      if (i != 0)
++	fputc (',', fp);
++      fputs ("{\n", fp);
++
++      fputs ("\"logical\": ", fp);
++      trtbd_write_filepath (d->modules[i], fp);
++      fputs ("\n", fp);
++
++      fputs ("}\n", fp);
++    }
++  fputs ("]\n", fp);
++
++  fputs ("},\n", fp);
 +
 +  fputs ("\"depends\": [\n", fp);
 +  trtbd_write_vec (d->deps, fp);
-+  fputs ("],\n", fp);
-+
-+  fputs ("\"version\": 1\n", fp);
++  fputs ("]\n", fp);
 +
 +  fputs ("}\n", fp);
-+}
++  fputs ("],\n", fp);
 +
++  fputs ("\"version\": 0,\n", fp);
++  fputs ("\"revision\": 0\n", fp);
++
++  fputs ("}\n", fp);
+ }
+ 
  /* Write out a deps buffer to a file, in a form that can be read back
-    with deps_restore.  Returns nonzero on error, in which case the
-    error number will be in errno.  */
