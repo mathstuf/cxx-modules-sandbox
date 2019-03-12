@@ -652,3 +652,23 @@ index 2e40dbca7c8..f90cd407ee4 100644
  }
  
  /* Write out a deps buffer to a file, in a form that can be read back
+diff --git a/gcc/cp/tree.c b/gcc/cp/tree.c
+index deb128ef486..3a35959ae37 100644
+--- a/gcc/cp/tree.c
++++ b/gcc/cp/tree.c
+@@ -2233,6 +2233,7 @@ ovl_insert (tree fn, tree maybe_ovl, bool using_p)
+ 
+ /* Splice PART into OVL.  */
+ 
++/*
+ static tree
+ ovl_splice (tree part, tree ovl)
+ {
+@@ -2246,6 +2247,7 @@ ovl_splice (tree part, tree ovl)
+     ovl = ovl_insert (part, ovl);
+   return ovl;
+ }
++*/
+ 
+ /* Skip any hidden names at the beginning of OVL.   */
+ 
