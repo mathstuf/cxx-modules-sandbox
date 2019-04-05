@@ -1,0 +1,17 @@
+linux_cmake_gcc_task:
+    container:
+        image: benboeckel/cxx-modules-sandbox:latest
+    matrix:
+        - name: gcc-9
+          env:
+              CC: /home/modules/misc/root/gcc/bin/gcc
+              CXX: /home/modules/misc/root/gcc/bin/g++
+    configure_script:
+        - mkdir build && cd build
+        - /home/modules/misc/root/cmake/bin/cmake -GNinja -DCMAKE_MAKE_PROGRAM:FILEPATH=$HOME/misc/root/cmake/bin/ninja ..
+    build_script:
+        - cd build
+        - /home/modules/misc/root/cmake/bin/cmake --build .
+    test_script:
+        - cd build
+        - /home/modules/misc/root/cmake/bin/ctest
