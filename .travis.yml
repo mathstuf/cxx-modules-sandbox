@@ -1,0 +1,41 @@
+# This file contains the configuration for the travis continuous integration service.
+# You can consult the travis service running for this project at
+# https://travis-ci.org
+
+os:
+ - linux
+
+language: minimal
+
+branches.only:
+ - docker
+
+services:
+ - docker
+
+script: |
+ set -eux &&
+ tag=cxx-modules-sandbox:latest
+
+ log=$(mktemp) # log to a file because travis rejects having big logs
+
+ # also, emit a message periodically otherwise travis thinks the build stalled and kills it
+ (while :; do sleep 5m; tail -n10 $log; done) &
+ log_pid=$!
+
+ # build the image
+ if ! docker image build -t "$DOCKER_USERNAME"/$tag . &> $log
+ then
+  # on failure, print tail of log before bailing out
+  error=$!
+  kill $log_pid
+  tail -c100000 $log
+  return $error
+ fi
+
+ # stop monitoring the log
+ kill $log_pid
+
+ # publish the image
+ printf '%s' "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+ docker image push "$DOCKER_USERNAME"/$tag
