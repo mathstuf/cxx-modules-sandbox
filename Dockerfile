@@ -4,7 +4,7 @@ MAINTAINER Ben Boeckel <ben.boeckel@kitware.com>
 # Install build dependencies for packages.
 RUN dnf install -y \
         git-core \
-        openssl-devel make \
+        openssl-devel make cmake ninja-build \
         re2c \
         subversion gcc-c++ mpfr-devel libmpc-devel isl-devel flex bison file findutils && \
     dnf clean all
@@ -18,6 +18,9 @@ USER modules
 COPY install_gcc.sh /home/modules/install_gcc.sh
 COPY trtbd.diff /home/modules/trtbd.diff
 RUN sh /home/modules/install_gcc.sh
+
+COPY install_clang.sh /home/modules/install_clang.sh
+RUN sh /home/modules/install_clang.sh
 
 COPY install_cmake.sh /home/modules/install_cmake.sh
 RUN sh /home/modules/install_cmake.sh
