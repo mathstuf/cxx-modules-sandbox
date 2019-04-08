@@ -34,3 +34,17 @@ add_test(NAME define-other COMMAND define-other)
 set_tests_properties(define-other
     PROPERTIES
         WILL_FAIL TRUE)
+
+add_library(export-define-x
+    export-define.cpp
+    import-define.cpp)
+target_compile_definitions(export-define-x
+    PRIVATE
+        DEFINE=x)
+
+add_library(export-define-y
+    export-define.cpp
+    import-define.cpp)
+target_compile_definitions(export-define-y
+    PRIVATE
+        DEFINE=y)
