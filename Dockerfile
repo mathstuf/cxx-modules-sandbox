@@ -24,6 +24,9 @@ RUN sh /home/modules/install_cmake.sh
 COPY install_ninja.sh /home/modules/install_ninja.sh
 RUN sh /home/modules/install_ninja.sh
 
+COPY install_build2.sh /home/modules/install_build2.sh
+RUN sh /home/modules/install_build2.sh
+
 RUN git clone https://gitlab.kitware.com/ben.boeckel/cxx-modules-sandbox.git /home/modules/code/cxx-modules-sandbox/src
 WORKDIR /home/modules
 COPY README /home/modules/README
