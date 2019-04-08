@@ -1,4 +1,4 @@
-module M:partb;
+module module:partb;
 
 export int b() {
     return 0;

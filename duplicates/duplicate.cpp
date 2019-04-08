@@ -1,4 +1,4 @@
-export module M;
+export module duplicate;
 
 export int m() {
     return 1;

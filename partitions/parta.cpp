@@ -1,4 +1,4 @@
-export module M:parta;
+export module module:parta;
 
 export int a() {
     return 0;

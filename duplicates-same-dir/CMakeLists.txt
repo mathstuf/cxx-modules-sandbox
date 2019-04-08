@@ -1,4 +1,4 @@
 add_library(duplicates-same-dir-1
-    modules.cpp)
+    duplicate.cpp)
 add_library(duplicates-same-dir-2
-    modules.cpp)
+    duplicate.cpp)
