@@ -1,0 +1,5 @@
+import gen;
+
+int genimport() {
+    return gen();
+}

@@ -11,6 +11,7 @@ add_subdirectory(duplicates-same-dir)
 add_subdirectory(link-use)
 add_subdirectory(link-use-mask)
 add_subdirectory(good-scanner)
+add_subdirectory(generated)
 
 # GCC doesn't fully support partitions yet. "provided" partitions
 # are not in the "provides" field of the .dd. It also says they
