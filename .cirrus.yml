@@ -1,0 +1,10 @@
+docker_builder:
+    only_if: $CIRRUS_TAG != ''
+    env:
+        DOCKER_IMAGE: benboeckel/cxx-modules-sandbox
+        DOCKER_USERNAME: benboeckelcxxmodules
+        DOCKER_PASSWORD: ENCRYPTED[527aea8b13c1fbd0e12335b88cbfa0dd54492c459729adf277bd395da3593835fcc1fb8cd641e15472c2582242bbbbe0]
+    pull_script: docker pull $DOCKER_IMAGE:latest || true
+    build_script: docker build --cache-from $DOCKER_IMAGE:latest --tag $DOCKER_IMAGE:$CIRRUS_TAG .
+    login_script: docker login --username $DOCKER_USERNAME --password $DOCKER_PASSWORD
+    push_script: docker push $DOCKER_IMAGE:$CIRRUS_TAG
