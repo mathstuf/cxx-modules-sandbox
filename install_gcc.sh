@@ -9,6 +9,7 @@ readonly url="svn://gcc.gnu.org/svn/gcc/branches/c++-modules"
 readonly workdir="$HOME/misc/code/gcc"
 readonly srcdir="$workdir/gcc"
 readonly builddir="$workdir/build"
+readonly njobs="$(( $( getconf _NPROCESSORS_ONLN ) * 1 ))"
 
 svn checkout "-r$revision" "$url" "$srcdir"
 cd "$srcdir"
@@ -19,6 +20,6 @@ cd "$builddir"
     --disable-multilib \
     --enable-languages=c,c++ \
     --prefix="$HOME/misc/root/gcc"
-make -j14
-make -j14 install-strip
+make "-j$njobs"
+make "-j$njobs" install-strip
 rm -rf "$workdir"
