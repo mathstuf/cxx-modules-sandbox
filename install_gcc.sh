@@ -20,5 +20,5 @@ cd "$builddir"
     --enable-languages=c,c++ \
     --prefix="$HOME/misc/root/gcc"
 make -j14
-make -j14 install
+make -j14 install-strip
 rm -rf "$workdir"
