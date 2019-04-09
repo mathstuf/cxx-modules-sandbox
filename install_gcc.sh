@@ -17,6 +17,7 @@ mkdir -p "$builddir"
 cd "$builddir"
 "$srcdir/configure" \
     --disable-multilib \
+    --enable-languages=c,c++ \
     --prefix="$HOME/misc/root/gcc"
 make -j14
 make -j14 install
