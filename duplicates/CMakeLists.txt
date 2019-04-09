@@ -1,2 +1,2 @@
 add_library(duplicates
-    modules.cpp)
+    duplicate.cpp)

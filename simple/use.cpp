@@ -1,5 +1,5 @@
-import M;
-import I;
+import duplicate;
+import another;
 
 int lib() {
     return m() + i();

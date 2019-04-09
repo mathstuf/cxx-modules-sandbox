@@ -1,4 +1,4 @@
 add_library(simple
-    module.cpp
-    import.cpp
+    duplicate.cpp
+    another.cpp
     use.cpp)
