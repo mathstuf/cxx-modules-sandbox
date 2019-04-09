@@ -2,7 +2,7 @@
 
 set -e
 
-readonly revision="269587"
+readonly revision="270235"
 
 readonly url="svn://gcc.gnu.org/svn/gcc/branches/c++-modules"
 
