@@ -1,5 +1,5 @@
-export module module:partb;
+module module:partb;
 
-export int b() {
+int b() {
     return 0;
 }
