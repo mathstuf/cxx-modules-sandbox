@@ -2,12 +2,8 @@ FROM fedora:29
 MAINTAINER Ben Boeckel <ben.boeckel@kitware.com>
 
 # Install build dependencies for packages.
-RUN dnf install -y \
-        git-core \
-        openssl-devel make \
-        re2c \
-        subversion gcc-c++ mpfr-devel libmpc-devel isl-devel flex bison file findutils && \
-    dnf clean all
+COPY install_deps.sh /root/install_deps.sh
+RUN sh /root/install_deps.sh
 
 RUN useradd -c modules -d /home/modules -M modules && \
     mkdir /home/modules && \
