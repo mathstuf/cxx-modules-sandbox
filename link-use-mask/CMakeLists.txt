@@ -1,5 +1,5 @@
 add_executable(link-use-mask
-    use.cpp)
+    use.mpp)
 # Should use "simple"'s `M` module since it is first in the link list.
 target_link_libraries(link-use-mask
     PRIVATE
@@ -8,7 +8,7 @@ target_link_libraries(link-use-mask
 add_test(NAME link-use-mask COMMAND link-use-mask)
 
 add_executable(link-use-mask-reverse
-    use.cpp)
+    use.mpp)
 # Should use "duplicate"'s `M` module since it is first in the link list.
 target_link_libraries(link-use-mask-reverse
     PRIVATE

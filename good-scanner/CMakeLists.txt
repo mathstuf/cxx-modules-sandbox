@@ -1,18 +1,18 @@
 add_library(good-scanner
     # These should trip up `sed`-level scanners.
-    header-import.cpp
-    import.cpp
-    export.cpp
+    header-import.mpp
+    import.mpp
+    export.mpp
 
     # Simple modules for use in other sources.
-    mod.cpp
-    other.cpp
+    mod.mpp
+    other.mpp
 
     # Import multiple modules on the same line.
-    multi-line.cpp)
+    multi-line.mpp)
 
 add_executable(define-mod
-    define.cpp)
+    define.mpp)
 target_compile_definitions(define-mod
     PRIVATE
         DEFINE=mod
@@ -23,7 +23,7 @@ target_link_libraries(define-mod
 add_test(NAME define-mod COMMAND define-mod)
 
 add_executable(define-other
-    define.cpp)
+    define.mpp)
 target_compile_definitions(define-other
     PRIVATE
         DEFINE=other)
@@ -36,15 +36,15 @@ set_tests_properties(define-other
         WILL_FAIL TRUE)
 
 add_library(export-define-x
-    export-define.cpp
-    import-define.cpp)
+    export-define.mpp
+    import-define.mpp)
 target_compile_definitions(export-define-x
     PRIVATE
         DEFINE=x)
 
 add_library(export-define-y
-    export-define.cpp
-    import-define.cpp)
+    export-define.mpp
+    import-define.mpp)
 target_compile_definitions(export-define-y
     PRIVATE
         DEFINE=y)

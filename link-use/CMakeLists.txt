@@ -1,5 +1,5 @@
 add_executable(link-use
-    use.cpp)
+    use.mpp)
 target_link_libraries(link-use
     PRIVATE
         simple)

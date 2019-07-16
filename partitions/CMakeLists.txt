@@ -1,6 +1,6 @@
 add_library(partitions
-    module.cpp
-    parta.cpp
-    partb.cpp
+    module.mpp
+    parta.mpp
+    partb.mpp
 
-    impl.cpp)
+    impl.mpp)

@@ -1,4 +1,4 @@
 add_library(duplicates-same-dir-1
-    duplicate.cpp)
+    duplicate.mpp)
 add_library(duplicates-same-dir-2
-    duplicate.cpp)
+    duplicate.mpp)

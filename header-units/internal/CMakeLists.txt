@@ -4,7 +4,7 @@ include(GNUInstallDirs)
 # declared in the referenced targets. Without this, the above modules would
 # *not* have BMIs created there are no references to them.
 add_library(has-header-units SHARED
-    module.cpp)
+    module.mpp)
 target_include_directories(has-header-units
     PUBLIC
         # Make the header available during the build.
