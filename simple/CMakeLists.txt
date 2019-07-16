@@ -1,4 +1,4 @@
 add_library(simple
-    duplicate.cpp
-    another.cpp
-    use.cpp)
+    duplicate.mpp
+    another.mpp
+    use.mpp)

@@ -29,7 +29,7 @@ target_cxx_modules(extmods
 # declared in the referenced targets. Without this, the above modules would
 # *not* have BMIs created there are no references to them.
 add_library(use-ext-mods SHARED
-    module.cpp)
+    module.mpp)
 target_link_libraries(use-ext-mods
     PRIVATE
         exthdrs

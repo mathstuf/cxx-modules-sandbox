@@ -9,11 +9,11 @@ function (generate name)
         COMMENT "Copying ${name}")
 endfunction ()
 
-generate(gen-export.cpp)
-generate(gen-import.cpp)
+generate(gen-export.mpp)
+generate(gen-import.mpp)
 
 add_executable(generated
-    "${CMAKE_CURRENT_BINARY_DIR}/gen-export.cpp"
-    "${CMAKE_CURRENT_BINARY_DIR}/gen-import.cpp"
-    use.cpp)
+    "${CMAKE_CURRENT_BINARY_DIR}/gen-export.mpp"
+    "${CMAKE_CURRENT_BINARY_DIR}/gen-import.mpp"
+    use.mpp)
 add_test(NAME generated COMMAND generated)
