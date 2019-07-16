@@ -1,0 +1,4 @@
+#define eat(x)
+eat(
+import module nonexistent;
+)
