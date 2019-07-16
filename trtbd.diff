@@ -1,9 +1,18 @@
+commit 2008923fba426b6340a9d0c1474f9ea621a14d2e
+Author: Ben Boeckel <ben.boeckel@kitware.com>
+Date:   Tue Mar 12 14:55:29 2019 -0400
+
+    modules: add "trtbd" output format
+    
+    Not the final name (WG21's SG15 is working on a Technical Report, so the
+    name currently stands for "Technical Report to-be-determined").
+
 diff --git a/ChangeLog.modules b/ChangeLog.modules
-index c161868db5a..97d1c186612 100644
+index 24ba502ac3e..faac7fbac1f 100644
 --- a/ChangeLog.modules
 +++ b/ChangeLog.modules
 @@ -1,3 +1,31 @@
-+2019-04-09  Ben Boeckel  <ben.boeckel@kitware.com>
++2019-07-14  Ben Boeckel  <ben.boeckel@kitware.com>
 +
 +	gcc/
 +	* gcc/c-family/c-opts.c (c_common_handle_option): Add -fdeps-{file,format,output}= argument.
@@ -31,11 +40,11 @@ index c161868db5a..97d1c186612 100644
 +	(trtbd_write_vec): Add.
 +	(deps_write_trtbd): Add.
 +
- 2019-04-09  Nathan Sidwell  <nathan@acm.org>
+ 2019-07-09  Nathan Sidwell  <nathan@acm.org>
  
- 	gcc/cp/
+ 	gcc/c-family/
 diff --git a/gcc/c-family/c-opts.c b/gcc/c-family/c-opts.c
-index 6d6f43f28c3..2b3e5945286 100644
+index bf8c23c170a..81fe488b6c0 100644
 --- a/gcc/c-family/c-opts.c
 +++ b/gcc/c-family/c-opts.c
 @@ -76,6 +76,9 @@ static bool verbose;
@@ -48,7 +57,7 @@ index 6d6f43f28c3..2b3e5945286 100644
  /* The prefix given by -iprefix, if any.  */
  static const char *iprefix;
  
-@@ -349,6 +352,23 @@ c_common_handle_option (size_t scode, const char *arg, HOST_WIDE_INT value,
+@@ -350,6 +353,23 @@ c_common_handle_option (size_t scode, const char *arg, HOST_WIDE_INT value,
        deps_file = arg;
        break;
  
@@ -72,7 +81,7 @@ index 6d6f43f28c3..2b3e5945286 100644
      case OPT_MF:
        deps_seen = true;
        deps_file = arg;
-@@ -1200,6 +1220,7 @@ void
+@@ -1217,6 +1237,7 @@ void
  c_common_finish (void)
  {
    FILE *deps_stream = NULL;
@@ -80,7 +89,7 @@ index 6d6f43f28c3..2b3e5945286 100644
  
    /* Note that we write the dependencies even if there are errors. This is
       useful for handling outdated generated headers that now trigger errors
-@@ -1222,9 +1243,24 @@ c_common_finish (void)
+@@ -1239,9 +1260,24 @@ c_common_finish (void)
  	}
      }
  
@@ -106,7 +115,7 @@ index 6d6f43f28c3..2b3e5945286 100644
  
    if (deps_stream && deps_stream != out_stream && deps_stream != stdout
        && (ferror (deps_stream) || fclose (deps_stream)))
-@@ -1296,6 +1332,8 @@ handle_deferred_opts (void)
+@@ -1313,6 +1349,8 @@ handle_deferred_opts (void)
  
  	if (opt->code == OPT_MT || opt->code == OPT_MQ)
  	  deps_add_target (deps, opt->arg, opt->code == OPT_MQ);
@@ -116,12 +125,12 @@ index 6d6f43f28c3..2b3e5945286 100644
  }
  
 diff --git a/gcc/c-family/c.opt b/gcc/c-family/c.opt
-index 5b59c0e659e..8a2c0d23296 100644
+index 2ad7d2bcd2a..b5bf3ca3916 100644
 --- a/gcc/c-family/c.opt
 +++ b/gcc/c-family/c.opt
-@@ -248,6 +248,18 @@ MT
+@@ -256,6 +256,18 @@ MT
  C ObjC C++ ObjC++ Joined Separate MissingArgError(missing makefile target after %qs)
- -MT <target>	Add an unquoted target.
+ -MT <target>	Add a target that does not require quoting.
  
 +fdep-format=
 +C ObjC C++ ObjC++ NoDriverArg Joined MissingArgError(missing format after %qs)
@@ -139,10 +148,10 @@ index 5b59c0e659e..8a2c0d23296 100644
  C ObjC C++ ObjC++
  Do not generate #line directives.
 diff --git a/gcc/doc/invoke.texi b/gcc/doc/invoke.texi
-index 7142bcde5be..c1bdf45a396 100644
+index a47237dd93b..5b904e7086f 100644
 --- a/gcc/doc/invoke.texi
 +++ b/gcc/doc/invoke.texi
-@@ -2675,6 +2675,21 @@ An oracle to query for module name to filename mappings.  If
+@@ -2696,6 +2696,21 @@ An oracle to query for module name to filename mappings.  If
  unspecified the @env{CXX_MODULE_MAPPER} environment variable is used,
  and if that is unset, a default is provided.
  
@@ -165,7 +174,7 @@ index 7142bcde5be..c1bdf45a396 100644
  @opindex fms-extensions
  Disable Wpedantic warnings about constructs used in MFC, such as implicit
 diff --git a/gcc/fortran/cpp.c b/gcc/fortran/cpp.c
-index 98f7b2e307c..b12d87ae076 100644
+index 4b16205f4e0..2be809c750d 100644
 --- a/gcc/fortran/cpp.c
 +++ b/gcc/fortran/cpp.c
 @@ -683,7 +683,7 @@ gfc_cpp_done (void)
@@ -187,10 +196,10 @@ index 98f7b2e307c..b12d87ae076 100644
  
    cpp_undef_all (cpp_in);
 diff --git a/gcc/genmatch.c b/gcc/genmatch.c
-index 7b9b09c7d8b..da445d43dbc 100644
+index 109bd9e6f2d..67854b5af05 100644
 --- a/gcc/genmatch.c
 +++ b/gcc/genmatch.c
-@@ -5162,7 +5162,7 @@ add_operator (VIEW_CONVERT2, "view_convert2", "tcc_unary", 1);
+@@ -5166,7 +5166,7 @@ add_operator (VIEW_CONVERT2, "view_convert2", "tcc_unary", 1);
    dt.gen (stdout, gimple);
  
    /* Finalize.  */
@@ -200,10 +209,10 @@ index 7b9b09c7d8b..da445d43dbc 100644
  
    delete operators;
 diff --git a/gcc/input.c b/gcc/input.c
-index c589d70c2bb..2199e6e8e16 100644
+index 1e84d2ee2d1..e10668a73f5 100644
 --- a/gcc/input.c
 +++ b/gcc/input.c
-@@ -2041,7 +2041,7 @@ test_lexer (const line_table_case &case_)
+@@ -2042,7 +2042,7 @@ test_lexer (const line_table_case &case_)
    ASSERT_NE (tok, NULL);
    ASSERT_EQ (tok->type, CPP_EOF);
  
@@ -212,7 +221,7 @@ index c589d70c2bb..2199e6e8e16 100644
    cpp_destroy (parser);
  }
  
-@@ -2072,7 +2072,7 @@ class cpp_reader_ptr
+@@ -2073,7 +2073,7 @@ class cpp_reader_ptr
  
    ~cpp_reader_ptr ()
    {
@@ -222,7 +231,7 @@ index c589d70c2bb..2199e6e8e16 100644
    }
  
 diff --git a/libcpp/include/cpplib.h b/libcpp/include/cpplib.h
-index 83da379365f..81901b45a88 100644
+index 640e027b14b..d48809bac0a 100644
 --- a/libcpp/include/cpplib.h
 +++ b/libcpp/include/cpplib.h
 @@ -294,6 +294,9 @@ typedef CPPCHAR_SIGNED_T cppchar_signed_t;
@@ -245,7 +254,7 @@ index 83da379365f..81901b45a88 100644
      /* Assume missing files are generated files.  */
      bool missing_files;
  
-@@ -1000,9 +1006,9 @@ extern void cpp_post_options (cpp_reader *);
+@@ -1008,9 +1014,9 @@ extern void cpp_post_options (cpp_reader *);
  extern void cpp_init_iconv (cpp_reader *);
  
  /* Call this to finish preprocessing.  If you requested dependency
@@ -259,73 +268,74 @@ index 83da379365f..81901b45a88 100644
  /* Call this to release the handle at the end of preprocessing.  Any
     use of the handle after this function returns is invalid.  */
 diff --git a/libcpp/include/mkdeps.h b/libcpp/include/mkdeps.h
-index 7f8f429d0a0..b3443a10c21 100644
+index 9252d8dc9bf..5ed73b2f703 100644
 --- a/libcpp/include/mkdeps.h
 +++ b/libcpp/include/mkdeps.h
-@@ -49,6 +49,9 @@ extern void deps_add_target (struct mrules *, const char *, int);
+@@ -51,6 +51,9 @@ extern void deps_add_target (struct mkdeps *, const char *, int);
     string as the default target is interpreted as stdin.  */
- extern void deps_add_default_target (struct mrules *, const char *);
+ extern void deps_add_default_target (struct mkdeps *, const char *);
  
 +/* Add an output. */
-+extern void deps_add_output (struct mrules *, const char *);
++extern void deps_add_output (struct mkdeps *, const char *);
 +
  /* Add a dependency (appears on the right side of the colon) to the
     deps list.  Dependencies will be printed in the order that they
     were entered with this function.  By convention, the first
-@@ -59,8 +62,13 @@ extern void deps_add_module (struct mrules *, const char *, const char *,
+@@ -60,9 +63,14 @@ extern void deps_add_dep (struct mkdeps *, const char *);
+ extern void deps_add_module (struct mkdeps *, const char *,
  			     const char * = NULL, bool = false);
  
- /* Write out a deps buffer to a specified file.  The fourth argument
+-/* Write out a deps buffer to a specified file.  The last argument
 -   is the number of columns to word-wrap at (0 means don't wrap).  */
--extern void deps_write (const struct mrules *, FILE *, bool, unsigned int);
+-extern void deps_write (const cpp_reader *, FILE *, unsigned int);
++/* Write out a deps buffer to a specified file.  The third argument
 +   is the number of columns to word-wrap at (0 means don't wrap).
 +   The last argument indicates whether to output extra information
 +   (namely modules).  */
-+extern void deps_write (const struct mrules *, FILE *, bool, unsigned int, int);
++extern void deps_write (const struct cpp_reader *, FILE *, unsigned int, int);
 +
 +/* Write out a deps buffer to a specified file in TRtbd format.  */
-+extern void deps_write_trtbd (const struct mrules *, FILE *);
++extern void deps_write_trtbd (const struct mkdeps *, FILE *);
  
  /* Write out a deps buffer to a file, in a form that can be read back
     with deps_restore.  Returns nonzero on error, in which case the
 diff --git a/libcpp/init.c b/libcpp/init.c
-index acfed17309d..137d01f56e2 100644
+index edc078875d1..34549cc247b 100644
 --- a/libcpp/init.c
 +++ b/libcpp/init.c
-@@ -748,7 +748,7 @@ read_original_directory (cpp_reader *pfile)
+@@ -758,7 +758,7 @@ read_original_directory (cpp_reader *pfile)
     Maybe it should also reset state, such that you could call
     cpp_start_read with a new filename to restart processing.  */
  void
 -cpp_finish (cpp_reader *pfile, FILE *deps_stream)
-+cpp_finish (cpp_reader *pfile, FILE *deps_stream, FILE *fdeps_stream)
++cpp_finish (struct cpp_reader *pfile, FILE *deps_stream, FILE *fdeps_stream)
  {
    /* Warn about unused macros before popping the final buffer.  */
    if (CPP_OPTION (pfile, warn_unused_macros))
-@@ -762,10 +762,17 @@ cpp_finish (cpp_reader *pfile, FILE *deps_stream)
+@@ -772,8 +772,16 @@ cpp_finish (cpp_reader *pfile, FILE *deps_stream)
    while (pfile->buffer)
      _cpp_pop_buffer (pfile);
  
+-  if (deps_stream)
+-    deps_write (pfile, deps_stream, 72);
 +  cpp_deps_format deps_format = CPP_OPTION (pfile, deps.format);
 +  if (deps_format == DEPS_FMT_TRtbd && fdeps_stream)
 +    deps_write_trtbd (pfile->deps, fdeps_stream);
 +
-   if (CPP_OPTION (pfile, deps.style) != DEPS_NONE
-       && deps_stream)
--    deps_write (pfile->deps, deps_stream,
--		CPP_OPTION (pfile, deps.phony_targets), 72);
++  if (CPP_OPTION (pfile, deps.style) != DEPS_NONE
++      && deps_stream)
 +    {
-+      deps_write (pfile->deps, deps_stream,
-+		  CPP_OPTION (pfile, deps.phony_targets), 72,
-+		  deps_format == DEPS_FMT_NONE);
++      deps_write (pfile, deps_stream,
++		  72, deps_format == DEPS_FMT_NONE);
 +    }
  
    /* Report on headers that could use multiple include guards.  */
    if (CPP_OPTION (pfile, print_include_names))
 diff --git a/libcpp/mkdeps.c b/libcpp/mkdeps.c
-index 2c9a9cc4179..bbbec8fb1b1 100644
+index 3adba19ccfa..2fcf4605215 100644
 --- a/libcpp/mkdeps.c
 +++ b/libcpp/mkdeps.c
-@@ -85,6 +85,8 @@ public:
+@@ -90,6 +90,8 @@ public:
  
      for (i = targets.size (); i--;)
        free (const_cast <char *> (targets[i]));
@@ -334,7 +344,7 @@ index 2c9a9cc4179..bbbec8fb1b1 100644
      for (i = deps.size (); i--;)
        free (const_cast <char *> (deps[i]));
      for (i = vpath.size (); i--;)
-@@ -97,6 +99,7 @@ public:
+@@ -102,6 +104,7 @@ public:
  
  public:
    vec<const char *> targets;
@@ -342,50 +352,50 @@ index 2c9a9cc4179..bbbec8fb1b1 100644
    vec<const char *> deps;
    vec<velt> vpath;
    vec<const char *> modules;
-@@ -287,6 +290,15 @@ deps_add_default_target (struct mrules *d, const char *tgt)
+@@ -299,6 +302,15 @@ deps_add_default_target (struct mkdeps *d, const char *tgt)
      }
  }
  
 +/* Adds an output O.  We make a copy, so it need not be a permanent
 +   string.  */
 +void
-+deps_add_output (struct mrules *d, const char *o)
++deps_add_output (struct mkdeps *d, const char *o)
 +{
 +  o = apply_vpath (d, o);
 +  d->outputs.push (xstrdup (o));
 +}
 +
  void
- deps_add_dep (struct mrules *d, const char *t)
+ deps_add_dep (struct mkdeps *d, const char *t)
  {
-@@ -380,7 +392,7 @@ make_write_vec (const mrules::vec<const char *> &vec, FILE *fp,
- }
+@@ -397,7 +409,7 @@ make_write_vec (const mkdeps::vec<const char *> &vec, FILE *fp,
+    .PHONY targets for all the dependencies too.  */
  
  static void
--make_write (const struct mrules *d, FILE *fp, bool phony, unsigned int colmax)
-+make_write (const struct mrules *d, FILE *fp, bool phony, unsigned int colmax, int extra)
+-make_write (const cpp_reader *pfile, FILE *fp, unsigned int colmax)
++make_write (const cpp_reader *pfile, FILE *fp, unsigned int colmax, int extra)
  {
-   unsigned column = 0;
-   if (colmax && colmax < 34)
-@@ -389,7 +401,7 @@ make_write (const struct mrules *d, FILE *fp, bool phony, unsigned int colmax)
+   const mkdeps *d = pfile->deps;
+ 
+@@ -408,7 +420,7 @@ make_write (const cpp_reader *pfile, FILE *fp, unsigned int colmax)
    if (d->deps.size ())
      {
        column = make_write_vec (d->targets, fp, 0, colmax, d->quote_lwm);
--      if (d->bmi_name)
-+      if (extra && d->bmi_name)
+-      if (CPP_OPTION (pfile, deps.modules) && d->bmi_name)
++      if (extra && CPP_OPTION (pfile, deps.modules) && d->bmi_name)
  	column = make_write_name (d->bmi_name, fp, column, colmax);
        fputs (":", fp);
        column++;
-@@ -400,7 +412,7 @@ make_write (const struct mrules *d, FILE *fp, bool phony, unsigned int colmax)
- 	  fprintf (fp, "%s:\n", munge (d->deps[i]));
-     }
+@@ -422,7 +434,7 @@ make_write (const cpp_reader *pfile, FILE *fp, unsigned int colmax)
+   if (!CPP_OPTION (pfile, deps.modules))
+     return;
  
 -  if (d->modules.size ())
 +  if (extra && d->modules.size ())
      {
        column = make_write_vec (d->targets, fp, 0, colmax, d->quote_lwm);
        if (d->bmi_name)
-@@ -411,7 +423,7 @@ make_write (const struct mrules *d, FILE *fp, bool phony, unsigned int colmax)
+@@ -433,7 +445,7 @@ make_write (const cpp_reader *pfile, FILE *fp, unsigned int colmax)
        fputs ("\n", fp);
      }
  
@@ -394,7 +404,7 @@ index 2c9a9cc4179..bbbec8fb1b1 100644
      {
        if (d->bmi_name)
  	{
-@@ -440,7 +452,7 @@ make_write (const struct mrules *d, FILE *fp, bool phony, unsigned int colmax)
+@@ -462,7 +474,7 @@ make_write (const cpp_reader *pfile, FILE *fp, unsigned int colmax)
  	}
      }
    
@@ -403,14 +413,14 @@ index 2c9a9cc4179..bbbec8fb1b1 100644
      {
        column = fprintf (fp, "CXX_IMPORTS +=");
        make_write_vec (d->modules, fp, column, colmax, 0, ".c++m");
-@@ -449,9 +461,221 @@ make_write (const struct mrules *d, FILE *fp, bool phony, unsigned int colmax)
- }
+@@ -475,9 +487,221 @@ make_write (const cpp_reader *pfile, FILE *fp, unsigned int colmax)
+ /* Really we should be opening fp here.  */
  
  void
--deps_write (const struct mrules *d, FILE *fp, bool phony, unsigned int colmax)
-+deps_write (const struct mrules *d, FILE *fp, bool phony, unsigned int colmax, int extra)
+-deps_write (const cpp_reader *pfile, FILE *fp, unsigned int colmax)
++deps_write (const struct cpp_reader *pfile, FILE *fp, unsigned int colmax, int extra)
 +{
-+  make_write (d, fp, phony, colmax, extra);
++  make_write (pfile, fp, colmax, extra);
 +}
 +
 +static bool
@@ -546,7 +556,7 @@ index 2c9a9cc4179..bbbec8fb1b1 100644
 +}
 +
 +static void
-+trtbd_write_vec (const mrules::vec<const char *> &vec, FILE *fp)
++trtbd_write_vec (const mkdeps::vec<const char *> &vec, FILE *fp)
 +{
 +  for (unsigned ix = 0; ix != vec.size (); ix++)
 +    {
@@ -558,9 +568,9 @@ index 2c9a9cc4179..bbbec8fb1b1 100644
 +}
 +
 +void
-+deps_write_trtbd (const struct mrules *d, FILE *fp)
++deps_write_trtbd (const struct mkdeps *d, FILE *fp)
  {
--  make_write (d, fp, phony, colmax);
+-  make_write (pfile, fp, colmax);
 +  fputs ("{\n", fp);
 +
 +  fputs ("\"sources\": [\n", fp);
@@ -581,19 +591,19 @@ index 2c9a9cc4179..bbbec8fb1b1 100644
 +      fputs ("\"outputs\": [\n", fp);
 +      trtbd_write_vec (d->outputs, fp);
 +      fputs ("],\n", fp);
++    }
 +
-+      if (d->bmi_name)
-+	{
-+	  fputs ("\"provides\": [\n", fp);
-+	  fputs ("{\n", fp);
++  if (d->module_name)
++    {
++      fputs ("\"provides\": [\n", fp);
++      fputs ("{\n", fp);
 +
-+	  fputs ("\"logical\": ", fp);
-+	  trtbd_write_filepath (d->module_name, fp);
-+	  fputs ("\n", fp);
++      fputs ("\"logical\": ", fp);
++      trtbd_write_filepath (d->module_name, fp);
++      fputs ("\n", fp);
 +
-+	  fputs ("}\n", fp);
-+	  fputs ("],\n", fp);
-+	}
++      fputs ("}\n", fp);
++      fputs ("],\n", fp);
 +    }
 +
 +  fputs ("\"requires\": [\n", fp);
