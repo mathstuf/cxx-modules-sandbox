@@ -3,6 +3,4 @@ add_library(partitions
     parta.cpp
     partb.cpp
 
-    # This is not yet supported in GCC9 yet.
-    #impl.cpp
-    )
+    impl.cpp)
