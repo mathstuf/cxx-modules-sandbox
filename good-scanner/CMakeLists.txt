@@ -7,10 +7,7 @@ add_library(good-scanner
 
     # Simple modules for use in other sources.
     mod.mpp
-    other.mpp
-
-    # Import multiple modules on the same line.
-    multi-line.mpp)
+    other.mpp)
 
 add_executable(define-mod
     define.mpp)
