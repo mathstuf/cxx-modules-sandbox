@@ -2,12 +2,12 @@
 
 set -e
 
-readonly url='https://github.com/llvm/llvm-project/archive/c0da957bb05b7044bec83f8159c57b1d9ab9eb59.tar.gz'
+readonly url='https://github.com/llvm/llvm-project/archive/65ac68ec3419abd98731e0c434229239e1563045.tar.gz'
 
 readonly workdir="$HOME/misc/code/clang"
 readonly srcdir="$workdir/clang"
 readonly builddir="$workdir/build"
-readonly njobs="$(( $( getconf _NPROCESSORS_ONLN ) * 1 ))"
+readonly njobs="$( nproc )"
 
 curl -fLs "$url" | tar xz --strip-components=1 --one-top-level="$srcdir"
 mkdir -p "$builddir"
