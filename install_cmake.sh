@@ -2,14 +2,14 @@
 
 set -e
 
-readonly cmake_version="cpp-modules-20190716.1"
+readonly cmake_version="cpp-modules-20200211.2"
 
 readonly url="https://gitlab.kitware.com/ben.boeckel/cmake.git"
 
 readonly workdir="$HOME/misc/code/cmake"
 readonly srcdir="$workdir/cmake"
 readonly builddir="$workdir/build"
-readonly njobs="$(( $( getconf _NPROCESSORS_ONLN ) * 1 ))"
+readonly njobs="$( nproc )"
 
 git clone "$url" "$srcdir"
 cd "$srcdir"
