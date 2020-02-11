@@ -1,50 +1,5 @@
-commit 2008923fba426b6340a9d0c1474f9ea621a14d2e
-Author: Ben Boeckel <ben.boeckel@kitware.com>
-Date:   Tue Mar 12 14:55:29 2019 -0400
-
-    modules: add "trtbd" output format
-    
-    Not the final name (WG21's SG15 is working on a Technical Report, so the
-    name currently stands for "Technical Report to-be-determined").
-
-diff --git a/ChangeLog.modules b/ChangeLog.modules
-index 24ba502ac3e..faac7fbac1f 100644
---- a/ChangeLog.modules
-+++ b/ChangeLog.modules
-@@ -1,3 +1,31 @@
-+2019-07-14  Ben Boeckel  <ben.boeckel@kitware.com>
-+
-+	gcc/
-+	* gcc/c-family/c-opts.c (c_common_handle_option): Add -fdeps-{file,format,output}= argument.
-+	(handle_deferred_opts): Handle -fdep-output= argument.
-+	(c_common_finish): Handle -fdep-output= argument.
-+	* gcc/c-family/c.opt: Ditto.
-+	* doc/invoke.texi: Add documentation for new flags.
-+	* fortran/cpp.c: (gfc_cpp_done): Update for new cpp_finish signature.
-+	* genmatch.c: (add_operator): Ditto.
-+	* input.c: (test_lexer): Ditto.
-+	(cpp_reader_ptr::~cpp_reader_ptr): Ditto.
-+
-+	libcpp/
-+	* cpplib.h: Add deps format enum and option storage.
-+	(cpp_finish): Add structured dependency stream argument.
-+	* mkdeps. (deps_write_trtbd): Declare.
-+	(deps_add_output): Declare.
-+	(deps_write): Add argument to suppress module information.
-+	* init.c (cpp_finish): Add call for trtbd output deps format
-+	* mkdeps.c (deps_add_module): Allocate bmi_name properly.
-+	(mrules): add outputs vector.
-+	(deps_add_output): Add.
-+	(is_utf8): Add.
-+	(trtbd_write_filepath): Add.
-+	(trtbd_write_vec): Add.
-+	(deps_write_trtbd): Add.
-+
- 2019-07-09  Nathan Sidwell  <nathan@acm.org>
- 
- 	gcc/c-family/
 diff --git a/gcc/c-family/c-opts.c b/gcc/c-family/c-opts.c
-index bf8c23c170a..81fe488b6c0 100644
+index dd65b3b8c30..da56c7c3f21 100644
 --- a/gcc/c-family/c-opts.c
 +++ b/gcc/c-family/c-opts.c
 @@ -76,6 +76,9 @@ static bool verbose;
@@ -57,7 +12,7 @@ index bf8c23c170a..81fe488b6c0 100644
  /* The prefix given by -iprefix, if any.  */
  static const char *iprefix;
  
-@@ -350,6 +353,23 @@ c_common_handle_option (size_t scode, const char *arg, HOST_WIDE_INT value,
+@@ -353,6 +356,23 @@ c_common_handle_option (size_t scode, const char *arg, HOST_WIDE_INT value,
        deps_file = arg;
        break;
  
@@ -65,7 +20,7 @@ index bf8c23c170a..81fe488b6c0 100644
 +      if (!strcmp(arg, "trtbd"))
 +	cpp_opts->deps.format = DEPS_FMT_TRtbd;
 +      else
-+	error ("-fdep-format= unknown format %s", arg);
++	error ("%<-fdep-format=%> unknown format %s", arg);
 +      break;
 +
 +    case OPT_fdep_file_:
@@ -81,7 +36,7 @@ index bf8c23c170a..81fe488b6c0 100644
      case OPT_MF:
        deps_seen = true;
        deps_file = arg;
-@@ -1217,6 +1237,7 @@ void
+@@ -1248,6 +1268,7 @@ void
  c_common_finish (void)
  {
    FILE *deps_stream = NULL;
@@ -89,7 +44,7 @@ index bf8c23c170a..81fe488b6c0 100644
  
    /* Note that we write the dependencies even if there are errors. This is
       useful for handling outdated generated headers that now trigger errors
-@@ -1239,9 +1260,24 @@ c_common_finish (void)
+@@ -1270,9 +1291,24 @@ c_common_finish (void)
  	}
      }
  
@@ -115,7 +70,7 @@ index bf8c23c170a..81fe488b6c0 100644
  
    if (deps_stream && deps_stream != out_stream && deps_stream != stdout
        && (ferror (deps_stream) || fclose (deps_stream)))
-@@ -1313,6 +1349,8 @@ handle_deferred_opts (void)
+@@ -1344,6 +1380,8 @@ handle_deferred_opts (void)
  
  	if (opt->code == OPT_MT || opt->code == OPT_MQ)
  	  deps_add_target (deps, opt->arg, opt->code == OPT_MQ);
@@ -125,7 +80,7 @@ index bf8c23c170a..81fe488b6c0 100644
  }
  
 diff --git a/gcc/c-family/c.opt b/gcc/c-family/c.opt
-index 2ad7d2bcd2a..b5bf3ca3916 100644
+index 265e4054412..1d8d7d7f6e0 100644
 --- a/gcc/c-family/c.opt
 +++ b/gcc/c-family/c.opt
 @@ -256,6 +256,18 @@ MT
@@ -148,10 +103,10 @@ index 2ad7d2bcd2a..b5bf3ca3916 100644
  C ObjC C++ ObjC++
  Do not generate #line directives.
 diff --git a/gcc/doc/invoke.texi b/gcc/doc/invoke.texi
-index a47237dd93b..5b904e7086f 100644
+index 93755f1feb5..0f9d9520ad7 100644
 --- a/gcc/doc/invoke.texi
 +++ b/gcc/doc/invoke.texi
-@@ -2696,6 +2696,21 @@ An oracle to query for module name to filename mappings.  If
+@@ -2758,6 +2758,21 @@ An oracle to query for module name to filename mappings.  If
  unspecified the @env{CXX_MODULE_MAPPER} environment variable is used,
  and if that is unset, a default is provided.
  
@@ -174,7 +129,7 @@ index a47237dd93b..5b904e7086f 100644
  @opindex fms-extensions
  Disable Wpedantic warnings about constructs used in MFC, such as implicit
 diff --git a/gcc/fortran/cpp.c b/gcc/fortran/cpp.c
-index 4b16205f4e0..2be809c750d 100644
+index 51baf141711..ea990831edc 100644
 --- a/gcc/fortran/cpp.c
 +++ b/gcc/fortran/cpp.c
 @@ -683,7 +683,7 @@ gfc_cpp_done (void)
@@ -196,10 +151,10 @@ index 4b16205f4e0..2be809c750d 100644
  
    cpp_undef_all (cpp_in);
 diff --git a/gcc/genmatch.c b/gcc/genmatch.c
-index 109bd9e6f2d..67854b5af05 100644
+index 0a8cba62e0c..a40c52dbfaa 100644
 --- a/gcc/genmatch.c
 +++ b/gcc/genmatch.c
-@@ -5166,7 +5166,7 @@ add_operator (VIEW_CONVERT2, "view_convert2", "tcc_unary", 1);
+@@ -5183,7 +5183,7 @@ main (int argc, char **argv)
    dt.gen (stdout, gimple);
  
    /* Finalize.  */
@@ -209,10 +164,10 @@ index 109bd9e6f2d..67854b5af05 100644
  
    delete operators;
 diff --git a/gcc/input.c b/gcc/input.c
-index 1e84d2ee2d1..e10668a73f5 100644
+index 8fe5d4282c6..a58b2ea386e 100644
 --- a/gcc/input.c
 +++ b/gcc/input.c
-@@ -2042,7 +2042,7 @@ test_lexer (const line_table_case &case_)
+@@ -2061,7 +2061,7 @@ test_lexer (const line_table_case &case_)
    ASSERT_NE (tok, NULL);
    ASSERT_EQ (tok->type, CPP_EOF);
  
@@ -221,7 +176,7 @@ index 1e84d2ee2d1..e10668a73f5 100644
    cpp_destroy (parser);
  }
  
-@@ -2073,7 +2073,7 @@ class cpp_reader_ptr
+@@ -2092,7 +2092,7 @@ class cpp_reader_ptr
  
    ~cpp_reader_ptr ()
    {
@@ -231,10 +186,10 @@ index 1e84d2ee2d1..e10668a73f5 100644
    }
  
 diff --git a/libcpp/include/cpplib.h b/libcpp/include/cpplib.h
-index 640e027b14b..d48809bac0a 100644
+index 13a5ad806bd..576f3701509 100644
 --- a/libcpp/include/cpplib.h
 +++ b/libcpp/include/cpplib.h
-@@ -294,6 +294,9 @@ typedef CPPCHAR_SIGNED_T cppchar_signed_t;
+@@ -295,6 +295,9 @@ typedef CPPCHAR_SIGNED_T cppchar_signed_t;
  /* Style of header dependencies to generate.  */
  enum cpp_deps_style { DEPS_NONE = 0, DEPS_USER, DEPS_SYSTEM };
  
@@ -244,7 +199,7 @@ index 640e027b14b..d48809bac0a 100644
  /* The possible normalization levels, from most restrictive to least.  */
  enum cpp_normalize_level {
    /* In NFKC.  */
-@@ -514,6 +517,9 @@ struct cpp_options
+@@ -527,6 +530,9 @@ struct cpp_options
      /* Style of header dependencies to generate.  */
      enum cpp_deps_style style;
  
@@ -254,7 +209,7 @@ index 640e027b14b..d48809bac0a 100644
      /* Assume missing files are generated files.  */
      bool missing_files;
  
-@@ -1008,9 +1014,9 @@ extern void cpp_post_options (cpp_reader *);
+@@ -1028,9 +1034,9 @@ extern void cpp_post_options (cpp_reader *);
  extern void cpp_init_iconv (cpp_reader *);
  
  /* Call this to finish preprocessing.  If you requested dependency
@@ -268,12 +223,12 @@ index 640e027b14b..d48809bac0a 100644
  /* Call this to release the handle at the end of preprocessing.  Any
     use of the handle after this function returns is invalid.  */
 diff --git a/libcpp/include/mkdeps.h b/libcpp/include/mkdeps.h
-index 9252d8dc9bf..5ed73b2f703 100644
+index 1d6dd9562a5..0793b3bfd8e 100644
 --- a/libcpp/include/mkdeps.h
 +++ b/libcpp/include/mkdeps.h
-@@ -51,6 +51,9 @@ extern void deps_add_target (struct mkdeps *, const char *, int);
+@@ -51,6 +51,9 @@ extern void deps_add_target (class mkdeps *, const char *, int);
     string as the default target is interpreted as stdin.  */
- extern void deps_add_default_target (struct mkdeps *, const char *);
+ extern void deps_add_default_target (class mkdeps *, const char *);
  
 +/* Add an output. */
 +extern void deps_add_output (struct mkdeps *, const char *);
@@ -281,7 +236,7 @@ index 9252d8dc9bf..5ed73b2f703 100644
  /* Add a dependency (appears on the right side of the colon) to the
     deps list.  Dependencies will be printed in the order that they
     were entered with this function.  By convention, the first
-@@ -60,9 +63,14 @@ extern void deps_add_dep (struct mkdeps *, const char *);
+@@ -60,9 +63,14 @@ extern void deps_add_dep (class mkdeps *, const char *);
  extern void deps_add_module (struct mkdeps *, const char *,
  			     const char * = NULL, bool = false);
  
@@ -300,10 +255,10 @@ index 9252d8dc9bf..5ed73b2f703 100644
  /* Write out a deps buffer to a file, in a form that can be read back
     with deps_restore.  Returns nonzero on error, in which case the
 diff --git a/libcpp/init.c b/libcpp/init.c
-index edc078875d1..34549cc247b 100644
+index 3212e01fbb5..b457eb0c509 100644
 --- a/libcpp/init.c
 +++ b/libcpp/init.c
-@@ -758,7 +758,7 @@ read_original_directory (cpp_reader *pfile)
+@@ -787,7 +787,7 @@ read_original_directory (cpp_reader *pfile)
     Maybe it should also reset state, such that you could call
     cpp_start_read with a new filename to restart processing.  */
  void
@@ -312,7 +267,7 @@ index edc078875d1..34549cc247b 100644
  {
    /* Warn about unused macros before popping the final buffer.  */
    if (CPP_OPTION (pfile, warn_unused_macros))
-@@ -772,8 +772,16 @@ cpp_finish (cpp_reader *pfile, FILE *deps_stream)
+@@ -801,8 +801,16 @@ cpp_finish (cpp_reader *pfile, FILE *deps_stream)
    while (pfile->buffer)
      _cpp_pop_buffer (pfile);
  
@@ -332,7 +287,7 @@ index edc078875d1..34549cc247b 100644
    /* Report on headers that could use multiple include guards.  */
    if (CPP_OPTION (pfile, print_include_names))
 diff --git a/libcpp/mkdeps.c b/libcpp/mkdeps.c
-index 3adba19ccfa..2fcf4605215 100644
+index beb8442be5d..e92b52e4f51 100644
 --- a/libcpp/mkdeps.c
 +++ b/libcpp/mkdeps.c
 @@ -90,6 +90,8 @@ public:
@@ -352,7 +307,7 @@ index 3adba19ccfa..2fcf4605215 100644
    vec<const char *> deps;
    vec<velt> vpath;
    vec<const char *> modules;
-@@ -299,6 +302,15 @@ deps_add_default_target (struct mkdeps *d, const char *tgt)
+@@ -299,6 +302,15 @@ deps_add_default_target (class mkdeps *d, const char *tgt)
      }
  }
  
@@ -366,7 +321,7 @@ index 3adba19ccfa..2fcf4605215 100644
 +}
 +
  void
- deps_add_dep (struct mkdeps *d, const char *t)
+ deps_add_dep (class mkdeps *d, const char *t)
  {
 @@ -397,7 +409,7 @@ make_write_vec (const mkdeps::vec<const char *> &vec, FILE *fp,
     .PHONY targets for all the dependencies too.  */
@@ -404,7 +359,7 @@ index 3adba19ccfa..2fcf4605215 100644
      {
        if (d->bmi_name)
  	{
-@@ -462,7 +474,7 @@ make_write (const cpp_reader *pfile, FILE *fp, unsigned int colmax)
+@@ -465,7 +477,7 @@ make_write (const cpp_reader *pfile, FILE *fp, unsigned int colmax)
  	}
      }
    
@@ -413,7 +368,7 @@ index 3adba19ccfa..2fcf4605215 100644
      {
        column = fprintf (fp, "CXX_IMPORTS +=");
        make_write_vec (d->modules, fp, column, colmax, 0, ".c++m");
-@@ -475,9 +487,221 @@ make_write (const cpp_reader *pfile, FILE *fp, unsigned int colmax)
+@@ -478,9 +490,226 @@ make_write (const cpp_reader *pfile, FILE *fp, unsigned int colmax)
  /* Really we should be opening fp here.  */
  
  void
@@ -518,11 +473,8 @@ index 3adba19ccfa..2fcf4605215 100644
 +      for (const char* c = name; *c; c++)
 +	{
 +	  // Escape control characters.
-+	  if (*c < ' ')
++	  if (ISCNTRL (*c))
 +	    fprintf (fp, "\\u%04x", *c);
-+	  // URL-encode `%`.
-+	  else if (*c == '%')
-+	    fprintf (fp, "%%%02x", *c);
 +	  // JSON escape characters.
 +	  else if (*c == '"' || *c == '\\')
 +	    {
@@ -539,9 +491,11 @@ index 3adba19ccfa..2fcf4605215 100644
 +    {
 +      fputs ("{\n", fp);
 +
++      // TODO: Add `readable` output.
++
 +      // 8-bit raw data.
 +      fputs ("\"format\": \"raw8\",\n", fp);
-+      fputs ("\"data\": [\n", fp);
++      fputs ("\"code-units\": [\n", fp);
 +
 +      // Output the bytes of the filepath as an array of integers.
 +      const char* c = name;
@@ -573,12 +527,12 @@ index 3adba19ccfa..2fcf4605215 100644
 -  make_write (pfile, fp, colmax);
 +  fputs ("{\n", fp);
 +
-+  fputs ("\"sources\": [\n", fp);
++  fputs ("\"rules\": [\n", fp);
 +  fputs ("{\n", fp);
 +
-+  fputs ("\"input\": ", fp);
++  fputs ("\"inputs\": [", fp);
 +  trtbd_write_filepath (d->deps[0], fp);
-+  fputs (",\n", fp);
++  fputs ("],\n", fp);
 +
 +  fputs ("\"outputs\": [\n", fp);
 +  trtbd_write_vec (d->targets, fp);
@@ -598,7 +552,7 @@ index 3adba19ccfa..2fcf4605215 100644
 +      fputs ("\"provides\": [\n", fp);
 +      fputs ("{\n", fp);
 +
-+      fputs ("\"logical\": ", fp);
++      fputs ("\"logical-name\": ", fp);
 +      trtbd_write_filepath (d->module_name, fp);
 +      fputs ("\n", fp);
 +
@@ -613,7 +567,7 @@ index 3adba19ccfa..2fcf4605215 100644
 +	fputs (",\n", fp);
 +      fputs ("{\n", fp);
 +
-+      fputs ("\"logical\": ", fp);
++      fputs ("\"logical-name\": ", fp);
 +      trtbd_write_filepath (d->modules[i], fp);
 +      fputs ("\n", fp);
 +
@@ -629,6 +583,12 @@ index 3adba19ccfa..2fcf4605215 100644
 +
 +  fputs ("}\n", fp);
 +  fputs ("],\n", fp);
++
++  char *curdir = get_current_dir_name ();
++  fputs ("\"work-directory\": ", fp);
++  trtbd_write_filepath (curdir, fp);
++  free (curdir);
++  fputs (",\n", fp);
 +
 +  fputs ("\"version\": 0,\n", fp);
 +  fputs ("\"revision\": 0\n", fp);

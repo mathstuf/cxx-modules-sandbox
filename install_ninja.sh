@@ -2,18 +2,17 @@
 
 set -e
 
-readonly ninja_version="kitware-staged-features"
+readonly ninja_version="1.10.0"
 
-readonly url="https://github.com/Kitware/ninja"
+readonly url="https://github.com/ninja-build/ninja"
 
 readonly workdir="$HOME/misc/code/ninja"
 readonly srcdir="$workdir"
 
-git clone "$url" "$srcdir"
-cd "$srcdir"
-git checkout "$ninja_version"
-python3 "$srcdir/configure.py" \
-    --bootstrap \
-    --verbose
+mkdir -p "$workdir"
+cd "$workdir"
+
+curl -LO "$url/releases/download/v$ninja_version/ninja-linux.zip"
+"$HOME/misc/root/cmake/bin/cmake" -E tar xf "ninja-linux.zip"
 install -m 755 ninja "$HOME/misc/root/cmake/bin/ninja"
 rm -rf "$workdir"

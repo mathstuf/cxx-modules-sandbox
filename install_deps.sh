@@ -5,7 +5,7 @@ set -e
 readonly git_deps="git-core"
 readonly cmake_deps="openssl-devel make"
 readonly ninja_deps="re2c"
-readonly gcc_deps="subversion gcc-c++ mpfr-devel libmpc-devel isl-devel flex bison file findutils"
+readonly gcc_deps="gcc-c++ mpfr-devel libmpc-devel isl-devel flex bison file findutils diffutils"
 readonly clang_deps="cmake ninja-build"
 
 dnf install -y \
