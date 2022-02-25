@@ -1,4 +1,4 @@
-FROM fedora:31
+FROM fedora:35
 MAINTAINER Ben Boeckel <ben.boeckel@kitware.com>
 
 # Install build dependencies for packages.
