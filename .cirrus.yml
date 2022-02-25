@@ -1,13 +1,13 @@
 linux_cmake_gcc_task:
     container:
-        image: benboeckel/cxx-modules-sandbox:20200211.2
+        image: benboeckel/cxx-modules-sandbox:20220225.0
     matrix:
-        - name: gcc-9-shared
+        - name: gcc-12-shared
           env:
               CC: /home/modules/misc/root/gcc/bin/gcc
               CXX: /home/modules/misc/root/gcc/bin/g++
               shared: ON
-        - name: gcc-9-static
+        - name: gcc-12-static
           env:
               CC: /home/modules/misc/root/gcc/bin/gcc
               CXX: /home/modules/misc/root/gcc/bin/g++
