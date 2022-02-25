@@ -2,7 +2,7 @@
 
 set -e
 
-readonly revision="ecea46a64e5a3b501cff5ce2e3d30027af27837b"
+readonly revision="f4ed267fa5b82d6dafbc8afc82baf45bfcae549c"
 readonly tarball="https://github.com/gcc-mirror/gcc/archive/$revision.tar.gz"
 
 readonly workdir="$HOME/misc/code/gcc"

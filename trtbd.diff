@@ -1,7 +1,21 @@
-diff --git a/gcc/c-family/c-opts.c b/gcc/c-family/c-opts.c
-index dd65b3b8c30..da56c7c3f21 100644
---- a/gcc/c-family/c-opts.c
-+++ b/gcc/c-family/c-opts.c
+commit 4006e00c2ad5547a4f7273b46fdb509bf36a0d32
+Author: Ben Boeckel <mathstuf@gmail.com>
+Date:   Thu Jun 10 13:40:22 2021 -0400
+
+    WIP: p1689r4: initial support
+    
+    TODO:
+    
+      - changelog
+      - work-directory support
+      - header-unit information fields
+      - non-utf8 paths
+      - figure out why junk gets placed at the end of the file
+
+diff --git a/gcc/c-family/c-opts.cc b/gcc/c-family/c-opts.cc
+index 21ff22d1b4f..cff75f6dfeb 100644
+--- a/gcc/c-family/c-opts.cc
++++ b/gcc/c-family/c-opts.cc
 @@ -76,6 +76,9 @@ static bool verbose;
  /* Dependency output file.  */
  static const char *deps_file;
@@ -12,7 +26,7 @@ index dd65b3b8c30..da56c7c3f21 100644
  /* The prefix given by -iprefix, if any.  */
  static const char *iprefix;
  
-@@ -353,6 +356,23 @@ c_common_handle_option (size_t scode, const char *arg, HOST_WIDE_INT value,
+@@ -363,6 +366,23 @@ c_common_handle_option (size_t scode, const char *arg, HOST_WIDE_INT value,
        deps_file = arg;
        break;
  
@@ -36,7 +50,7 @@ index dd65b3b8c30..da56c7c3f21 100644
      case OPT_MF:
        deps_seen = true;
        deps_file = arg;
-@@ -1248,6 +1268,7 @@ void
+@@ -1276,6 +1296,7 @@ void
  c_common_finish (void)
  {
    FILE *deps_stream = NULL;
@@ -44,7 +58,7 @@ index dd65b3b8c30..da56c7c3f21 100644
  
    /* Note that we write the dependencies even if there are errors. This is
       useful for handling outdated generated headers that now trigger errors
-@@ -1270,9 +1291,24 @@ c_common_finish (void)
+@@ -1298,9 +1319,24 @@ c_common_finish (void)
  	}
      }
  
@@ -70,17 +84,17 @@ index dd65b3b8c30..da56c7c3f21 100644
  
    if (deps_stream && deps_stream != out_stream && deps_stream != stdout
        && (ferror (deps_stream) || fclose (deps_stream)))
-@@ -1344,6 +1380,8 @@ handle_deferred_opts (void)
+@@ -1372,6 +1408,8 @@ handle_deferred_opts (void)
  
  	if (opt->code == OPT_MT || opt->code == OPT_MQ)
  	  deps_add_target (deps, opt->arg, opt->code == OPT_MQ);
 +	else if (opt->code == OPT_fdep_output_)
-+	  deps_add_output (deps, opt->arg);
++	  deps_add_output (deps, opt->arg, true);
        }
  }
  
 diff --git a/gcc/c-family/c.opt b/gcc/c-family/c.opt
-index 265e4054412..1d8d7d7f6e0 100644
+index 9cfd2a6bc4e..6c684394567 100644
 --- a/gcc/c-family/c.opt
 +++ b/gcc/c-family/c.opt
 @@ -256,6 +256,18 @@ MT
@@ -103,12 +117,12 @@ index 265e4054412..1d8d7d7f6e0 100644
  C ObjC C++ ObjC++
  Do not generate #line directives.
 diff --git a/gcc/doc/invoke.texi b/gcc/doc/invoke.texi
-index 93755f1feb5..0f9d9520ad7 100644
+index fb3dec4ab0c..9fce1b254e6 100644
 --- a/gcc/doc/invoke.texi
 +++ b/gcc/doc/invoke.texi
-@@ -2758,6 +2758,21 @@ An oracle to query for module name to filename mappings.  If
- unspecified the @env{CXX_MODULE_MAPPER} environment variable is used,
- and if that is unset, a default is provided.
+@@ -2755,6 +2755,21 @@ is @option{-fpermitted-flt-eval-methods=c11}.  The default when in a GNU
+ dialect (@option{-std=gnu11} or similar) is
+ @option{-fpermitted-flt-eval-methods=ts-18661-3}.
  
 +@item -fdep-file=@var{file}
 +@opindex fdep-file
@@ -125,14 +139,14 @@ index 93755f1feb5..0f9d9520ad7 100644
 +@opindex fdep-output
 +Analogous to @option{-MT} but for structured dependency information.
 +
- @item -fms-extensions
- @opindex fms-extensions
- Disable Wpedantic warnings about constructs used in MFC, such as implicit
-diff --git a/gcc/fortran/cpp.c b/gcc/fortran/cpp.c
-index 51baf141711..ea990831edc 100644
---- a/gcc/fortran/cpp.c
-+++ b/gcc/fortran/cpp.c
-@@ -683,7 +683,7 @@ gfc_cpp_done (void)
+ @item -fplan9-extensions
+ @opindex fplan9-extensions
+ Accept some non-standard constructs used in Plan 9 code.
+diff --git a/gcc/fortran/cpp.cc b/gcc/fortran/cpp.cc
+index 364bd0d2a85..0b9df9c02cd 100644
+--- a/gcc/fortran/cpp.cc
++++ b/gcc/fortran/cpp.cc
+@@ -712,7 +712,7 @@ gfc_cpp_done (void)
  	  FILE *f = fopen (gfc_cpp_option.deps_filename, "w");
  	  if (f)
  	    {
@@ -141,7 +155,7 @@ index 51baf141711..ea990831edc 100644
  	      fclose (f);
  	    }
  	  else
-@@ -692,7 +692,7 @@ gfc_cpp_done (void)
+@@ -721,7 +721,7 @@ gfc_cpp_done (void)
  			     xstrerror (errno));
  	}
        else
@@ -150,11 +164,11 @@ index 51baf141711..ea990831edc 100644
      }
  
    cpp_undef_all (cpp_in);
-diff --git a/gcc/genmatch.c b/gcc/genmatch.c
-index 0a8cba62e0c..a40c52dbfaa 100644
---- a/gcc/genmatch.c
-+++ b/gcc/genmatch.c
-@@ -5183,7 +5183,7 @@ main (int argc, char **argv)
+diff --git a/gcc/genmatch.cc b/gcc/genmatch.cc
+index 97f6f00fa68..d93d0060508 100644
+--- a/gcc/genmatch.cc
++++ b/gcc/genmatch.cc
+@@ -5248,7 +5248,7 @@ main (int argc, char **argv)
    dt.gen (stdout, gimple);
  
    /* Finalize.  */
@@ -163,11 +177,11 @@ index 0a8cba62e0c..a40c52dbfaa 100644
    cpp_destroy (r);
  
    delete operators;
-diff --git a/gcc/input.c b/gcc/input.c
-index 8fe5d4282c6..a58b2ea386e 100644
---- a/gcc/input.c
-+++ b/gcc/input.c
-@@ -2061,7 +2061,7 @@ test_lexer (const line_table_case &case_)
+diff --git a/gcc/input.cc b/gcc/input.cc
+index b3970613d81..8c7666fdd81 100644
+--- a/gcc/input.cc
++++ b/gcc/input.cc
+@@ -2223,7 +2223,7 @@ test_lexer (const line_table_case &case_)
    ASSERT_NE (tok, NULL);
    ASSERT_EQ (tok->type, CPP_EOF);
  
@@ -176,7 +190,7 @@ index 8fe5d4282c6..a58b2ea386e 100644
    cpp_destroy (parser);
  }
  
-@@ -2092,7 +2092,7 @@ class cpp_reader_ptr
+@@ -2254,7 +2254,7 @@ class cpp_reader_ptr
  
    ~cpp_reader_ptr ()
    {
@@ -186,10 +200,10 @@ index 8fe5d4282c6..a58b2ea386e 100644
    }
  
 diff --git a/libcpp/include/cpplib.h b/libcpp/include/cpplib.h
-index 13a5ad806bd..576f3701509 100644
+index 3eba6f74b57..155c01e9329 100644
 --- a/libcpp/include/cpplib.h
 +++ b/libcpp/include/cpplib.h
-@@ -295,6 +295,9 @@ typedef CPPCHAR_SIGNED_T cppchar_signed_t;
+@@ -297,6 +297,9 @@ typedef CPPCHAR_SIGNED_T cppchar_signed_t;
  /* Style of header dependencies to generate.  */
  enum cpp_deps_style { DEPS_NONE = 0, DEPS_USER, DEPS_SYSTEM };
  
@@ -199,7 +213,7 @@ index 13a5ad806bd..576f3701509 100644
  /* The possible normalization levels, from most restrictive to least.  */
  enum cpp_normalize_level {
    /* In NFKC.  */
-@@ -527,6 +530,9 @@ struct cpp_options
+@@ -557,6 +560,9 @@ struct cpp_options
      /* Style of header dependencies to generate.  */
      enum cpp_deps_style style;
  
@@ -209,7 +223,7 @@ index 13a5ad806bd..576f3701509 100644
      /* Assume missing files are generated files.  */
      bool missing_files;
  
-@@ -1028,9 +1034,9 @@ extern void cpp_post_options (cpp_reader *);
+@@ -1077,9 +1083,9 @@ extern void cpp_post_options (cpp_reader *);
  extern void cpp_init_iconv (cpp_reader *);
  
  /* Call this to finish preprocessing.  If you requested dependency
@@ -223,22 +237,21 @@ index 13a5ad806bd..576f3701509 100644
  /* Call this to release the handle at the end of preprocessing.  Any
     use of the handle after this function returns is invalid.  */
 diff --git a/libcpp/include/mkdeps.h b/libcpp/include/mkdeps.h
-index 1d6dd9562a5..0793b3bfd8e 100644
+index 96d64641b1a..3363f750349 100644
 --- a/libcpp/include/mkdeps.h
 +++ b/libcpp/include/mkdeps.h
-@@ -51,6 +51,9 @@ extern void deps_add_target (class mkdeps *, const char *, int);
-    string as the default target is interpreted as stdin.  */
- extern void deps_add_default_target (class mkdeps *, const char *);
+@@ -58,15 +58,23 @@ extern void deps_add_module_target (struct mkdeps *, const char *module,
+ /* Adds a module dependency.  The module name is copied.  */
+ extern void deps_add_module_dep (struct mkdeps *, const char *module);
  
 +/* Add an output. */
-+extern void deps_add_output (struct mkdeps *, const char *);
++extern void deps_add_output (struct mkdeps *, const char *, bool);
 +
  /* Add a dependency (appears on the right side of the colon) to the
     deps list.  Dependencies will be printed in the order that they
     were entered with this function.  By convention, the first
-@@ -60,9 +63,14 @@ extern void deps_add_dep (class mkdeps *, const char *);
- extern void deps_add_module (struct mkdeps *, const char *,
- 			     const char * = NULL, bool = false);
+    dependency entered should be the primary source file.  */
+ extern void deps_add_dep (class mkdeps *, const char *);
  
 -/* Write out a deps buffer to a specified file.  The last argument
 -   is the number of columns to word-wrap at (0 means don't wrap).  */
@@ -254,11 +267,11 @@ index 1d6dd9562a5..0793b3bfd8e 100644
  
  /* Write out a deps buffer to a file, in a form that can be read back
     with deps_restore.  Returns nonzero on error, in which case the
-diff --git a/libcpp/init.c b/libcpp/init.c
-index 3212e01fbb5..b457eb0c509 100644
---- a/libcpp/init.c
-+++ b/libcpp/init.c
-@@ -787,7 +787,7 @@ read_original_directory (cpp_reader *pfile)
+diff --git a/libcpp/init.cc b/libcpp/init.cc
+index f4ab83d2145..ac870e3a160 100644
+--- a/libcpp/init.cc
++++ b/libcpp/init.cc
+@@ -842,7 +842,7 @@ read_original_directory (cpp_reader *pfile)
     Maybe it should also reset state, such that you could call
     cpp_start_read with a new filename to restart processing.  */
  void
@@ -267,7 +280,7 @@ index 3212e01fbb5..b457eb0c509 100644
  {
    /* Warn about unused macros before popping the final buffer.  */
    if (CPP_OPTION (pfile, warn_unused_macros))
-@@ -801,8 +801,16 @@ cpp_finish (cpp_reader *pfile, FILE *deps_stream)
+@@ -856,8 +856,16 @@ cpp_finish (cpp_reader *pfile, FILE *deps_stream)
    while (pfile->buffer)
      _cpp_pop_buffer (pfile);
  
@@ -286,44 +299,60 @@ index 3212e01fbb5..b457eb0c509 100644
  
    /* Report on headers that could use multiple include guards.  */
    if (CPP_OPTION (pfile, print_include_names))
-diff --git a/libcpp/mkdeps.c b/libcpp/mkdeps.c
-index beb8442be5d..e92b52e4f51 100644
---- a/libcpp/mkdeps.c
-+++ b/libcpp/mkdeps.c
-@@ -90,6 +90,8 @@ public:
+diff --git a/libcpp/mkdeps.cc b/libcpp/mkdeps.cc
+index 30e87d8b4d7..f78f9684f8a 100644
+--- a/libcpp/mkdeps.cc
++++ b/libcpp/mkdeps.cc
+@@ -81,7 +81,7 @@ public:
+   };
+ 
+   mkdeps ()
+-    : module_name (NULL), cmi_name (NULL), is_header_unit (false), quote_lwm (0)
++    : primary_output (NULL), module_name (NULL), cmi_name (NULL), is_header_unit (false), quote_lwm (0)
+   {
+   }
+   ~mkdeps ()
+@@ -90,6 +90,9 @@ public:
  
      for (i = targets.size (); i--;)
        free (const_cast <char *> (targets[i]));
++    free (const_cast <char *> (primary_output));
 +    for (i = outputs.size (); i--;)
 +      free (const_cast <char *> (outputs[i]));
      for (i = deps.size (); i--;)
        free (const_cast <char *> (deps[i]));
      for (i = vpath.size (); i--;)
-@@ -102,6 +104,7 @@ public:
- 
+@@ -103,6 +106,8 @@ public:
  public:
    vec<const char *> targets;
-+  vec<const char *> outputs;
    vec<const char *> deps;
++  const char * primary_output;
++  vec<const char *> outputs;
    vec<velt> vpath;
    vec<const char *> modules;
-@@ -299,6 +302,15 @@ deps_add_default_target (class mkdeps *d, const char *tgt)
+ 
+@@ -288,6 +293,20 @@ deps_add_default_target (class mkdeps *d, const char *tgt)
      }
  }
  
 +/* Adds an output O.  We make a copy, so it need not be a permanent
 +   string.  */
 +void
-+deps_add_output (struct mkdeps *d, const char *o)
++deps_add_output (struct mkdeps *d, const char *o, bool is_primary)
 +{
 +  o = apply_vpath (d, o);
-+  d->outputs.push (xstrdup (o));
++  if (is_primary) {
++    if (d->primary_output)
++      d->outputs.push (d->primary_output);
++    d->primary_output = xstrdup (o);
++  } else
++    d->outputs.push (xstrdup (o));
 +}
 +
  void
  deps_add_dep (class mkdeps *d, const char *t)
  {
-@@ -397,7 +409,7 @@ make_write_vec (const mkdeps::vec<const char *> &vec, FILE *fp,
+@@ -387,7 +406,7 @@ make_write_vec (const mkdeps::vec<const char *> &vec, FILE *fp,
     .PHONY targets for all the dependencies too.  */
  
  static void
@@ -332,16 +361,16 @@ index beb8442be5d..e92b52e4f51 100644
  {
    const mkdeps *d = pfile->deps;
  
-@@ -408,7 +420,7 @@ make_write (const cpp_reader *pfile, FILE *fp, unsigned int colmax)
+@@ -398,7 +417,7 @@ make_write (const cpp_reader *pfile, FILE *fp, unsigned int colmax)
    if (d->deps.size ())
      {
        column = make_write_vec (d->targets, fp, 0, colmax, d->quote_lwm);
--      if (CPP_OPTION (pfile, deps.modules) && d->bmi_name)
-+      if (extra && CPP_OPTION (pfile, deps.modules) && d->bmi_name)
- 	column = make_write_name (d->bmi_name, fp, column, colmax);
+-      if (CPP_OPTION (pfile, deps.modules) && d->cmi_name)
++      if (extra && CPP_OPTION (pfile, deps.modules) && d->cmi_name)
+ 	column = make_write_name (d->cmi_name, fp, column, colmax);
        fputs (":", fp);
        column++;
-@@ -422,7 +434,7 @@ make_write (const cpp_reader *pfile, FILE *fp, unsigned int colmax)
+@@ -412,7 +431,7 @@ make_write (const cpp_reader *pfile, FILE *fp, unsigned int colmax)
    if (!CPP_OPTION (pfile, deps.modules))
      return;
  
@@ -349,17 +378,17 @@ index beb8442be5d..e92b52e4f51 100644
 +  if (extra && d->modules.size ())
      {
        column = make_write_vec (d->targets, fp, 0, colmax, d->quote_lwm);
-       if (d->bmi_name)
-@@ -433,7 +445,7 @@ make_write (const cpp_reader *pfile, FILE *fp, unsigned int colmax)
+       if (d->cmi_name)
+@@ -423,7 +442,7 @@ make_write (const cpp_reader *pfile, FILE *fp, unsigned int colmax)
        fputs ("\n", fp);
      }
  
 -  if (d->module_name)
 +  if (extra && d->module_name)
      {
-       if (d->bmi_name)
+       if (d->cmi_name)
  	{
-@@ -465,7 +477,7 @@ make_write (const cpp_reader *pfile, FILE *fp, unsigned int colmax)
+@@ -455,7 +474,7 @@ make_write (const cpp_reader *pfile, FILE *fp, unsigned int colmax)
  	}
      }
    
@@ -368,7 +397,7 @@ index beb8442be5d..e92b52e4f51 100644
      {
        column = fprintf (fp, "CXX_IMPORTS +=");
        make_write_vec (d->modules, fp, column, colmax, 0, ".c++m");
-@@ -478,9 +490,226 @@ make_write (const cpp_reader *pfile, FILE *fp, unsigned int colmax)
+@@ -468,9 +487,202 @@ make_write (const cpp_reader *pfile, FILE *fp, unsigned int colmax)
  /* Really we should be opening fp here.  */
  
  void
@@ -390,7 +419,7 @@ index beb8442be5d..e92b52e4f51 100644
 +      int byte = *c;
 +
 +      // Check for a continuation character.
-+      if ((byte & 0xc0) == 0x80)
++      if ((byte & 0xc0) == 0x80) // 10xx_xxxx
 +	{
 +	  --expected_continuations;
 +
@@ -410,7 +439,7 @@ index beb8442be5d..e92b52e4f51 100644
 +
 +      // Invalid because if they appear, it is an attempt to encode an ASCII
 +      // character in 2 bytes.
-+      if (byte == 0xc0 || byte == 0xc1)
++      if (byte == 0xc0 || byte == 0xc1) // 1100_0000 || 1100_0001
 +	return false;
 +
 +      // Invalid because they would encode codepoints greater than allowed
@@ -433,23 +462,23 @@ index beb8442be5d..e92b52e4f51 100644
 +	return false;
 +
 +      // Single byte character.
-+      if ((byte & 0x80) == 0x00)
++      if ((byte & 0x80) == 0x00) // 0xxx_xxxx
 +	{
 +	  codepoint = byte;
 +	  byte_length = expected_continuations = 0;
 +	}
 +      // Prefix codes.
-+      else if ((byte & 0xe0) == 0xc0)
++      else if ((byte & 0xe0) == 0xc0) // 110x_xxxx
 +	{
 +	  codepoint = byte & 0x1f;
 +	  byte_length = expected_continuations = 1;
 +	}
-+      else if ((byte & 0xf0) == 0xe0)
++      else if ((byte & 0xf0) == 0xe0) // 1110_xxxx
 +	{
 +	  codepoint = byte & 0x0f;
 +	  byte_length = expected_continuations = 2;
 +	}
-+      else if ((byte & 0xf8) == 0xf0)
++      else if ((byte & 0xf8) == 0xf0) // 1111_0xxx
 +	{
 +	  codepoint = byte & 0x07;
 +	  byte_length = expected_continuations = 3;
@@ -466,7 +495,8 @@ index beb8442be5d..e92b52e4f51 100644
 +
 +static void
 +trtbd_write_filepath (const char *name, FILE *fp)
-+{
+ {
+-  make_write (pfile, fp, colmax);
 +  if (is_utf8 (name))
 +    {
 +      fputc ('"', fp);
@@ -489,23 +519,7 @@ index beb8442be5d..e92b52e4f51 100644
 +    }
 +  else
 +    {
-+      fputs ("{\n", fp);
-+
-+      // TODO: Add `readable` output.
-+
-+      // 8-bit raw data.
-+      fputs ("\"format\": \"raw8\",\n", fp);
-+      fputs ("\"code-units\": [\n", fp);
-+
-+      // Output the bytes of the filepath as an array of integers.
-+      const char* c = name;
-+      fprintf (fp, "%d", *c);
-+      for (++c; *c; c++)
-+	fprintf (fp, ",%d", *c);
-+
-+      fputs ("]\n", fp);
-+
-+      fputs ("}", fp);
++      // TODO: print an error
 +    }
 +}
 +
@@ -523,22 +537,20 @@ index beb8442be5d..e92b52e4f51 100644
 +
 +void
 +deps_write_trtbd (const struct mkdeps *d, FILE *fp)
- {
--  make_write (pfile, fp, colmax);
++{
 +  fputs ("{\n", fp);
 +
 +  fputs ("\"rules\": [\n", fp);
 +  fputs ("{\n", fp);
 +
-+  fputs ("\"inputs\": [", fp);
-+  trtbd_write_filepath (d->deps[0], fp);
-+  fputs ("],\n", fp);
++  // work-directory
 +
-+  fputs ("\"outputs\": [\n", fp);
-+  trtbd_write_vec (d->targets, fp);
-+  fputs ("],\n", fp);
-+
-+  fputs ("\"future-compile\": {\n", fp);
++  if (d->primary_output)
++    {
++      fputs ("\"primary-output\": ", fp);
++      trtbd_write_filepath (d->primary_output, fp);
++      fputs (",\n", fp);
++    }
 +
 +  if (d->outputs.size ())
 +    {
@@ -556,6 +568,8 @@ index beb8442be5d..e92b52e4f51 100644
 +      trtbd_write_filepath (d->module_name, fp);
 +      fputs ("\n", fp);
 +
++      // other information
++
 +      fputs ("}\n", fp);
 +      fputs ("],\n", fp);
 +    }
@@ -571,24 +585,15 @@ index beb8442be5d..e92b52e4f51 100644
 +      trtbd_write_filepath (d->modules[i], fp);
 +      fputs ("\n", fp);
 +
++      // other information
++
 +      fputs ("}\n", fp);
 +    }
 +  fputs ("]\n", fp);
 +
-+  fputs ("},\n", fp);
-+
-+  fputs ("\"depends\": [\n", fp);
-+  trtbd_write_vec (d->deps, fp);
-+  fputs ("]\n", fp);
-+
 +  fputs ("}\n", fp);
-+  fputs ("],\n", fp);
 +
-+  char *curdir = get_current_dir_name ();
-+  fputs ("\"work-directory\": ", fp);
-+  trtbd_write_filepath (curdir, fp);
-+  free (curdir);
-+  fputs (",\n", fp);
++  fputs ("],\n", fp);
 +
 +  fputs ("\"version\": 0,\n", fp);
 +  fputs ("\"revision\": 0\n", fp);
