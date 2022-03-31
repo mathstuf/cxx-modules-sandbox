@@ -1,3 +1,15 @@
+set_source_files_properties(
+    export-define.mpp
+    mod.mpp
+    other.mpp
+    PROPERTIES
+        EXPERIMENTAL_CXX_SOURCE_FILE_TYPE "INTERFACE")
+
+set_source_files_properties(
+    define.mpp
+    PROPERTIES
+        EXPERIMENTAL_CXX_SOURCE_FILE_TYPE "IMPLEMENTATION")
+
 add_library(good-scanner
     # These should trip up `sed`-level scanners.
     header-import.mpp

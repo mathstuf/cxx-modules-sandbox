@@ -12,6 +12,16 @@ endfunction ()
 generate(gen-export.mpp)
 generate(gen-import.mpp)
 
+set_source_files_properties(
+    "${CMAKE_CURRENT_BINARY_DIR}/gen-export.mpp"
+    PROPERTIES
+        EXPERIMENTAL_CXX_SOURCE_FILE_TYPE "INTERFACE")
+
+set_source_files_properties(
+    "${CMAKE_CURRENT_BINARY_DIR}/gen-import.mpp"
+    PROPERTIES
+    EXPERIMENTAL_CXX_SOURCE_FILE_TYPE "IMPLEMENTATION")
+
 add_executable(generated
     "${CMAKE_CURRENT_BINARY_DIR}/gen-export.mpp"
     "${CMAKE_CURRENT_BINARY_DIR}/gen-import.mpp"
