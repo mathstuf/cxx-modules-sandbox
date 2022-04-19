@@ -2,7 +2,7 @@
 
 set -e
 
-readonly cmake_version="cpp-modules-20220225.0"
+readonly cmake_version="cpp-modules-20220419.0"
 
 readonly url="https://gitlab.kitware.com/ben.boeckel/cmake.git"
 
