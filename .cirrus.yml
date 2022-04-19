@@ -21,3 +21,28 @@ linux_cmake_gcc_task:
     test_script:
         - cd build
         - /home/modules/misc/root/cmake/bin/ctest
+
+windows_cmake_vs2022_task:
+    windows_container:
+        image: mcr.microsoft.com/dotnet/framework/sdk:4.8-20211012-windowsservercore-ltsc2022
+    matrix:
+        - name: vs-2022-shared
+          env:
+              shared: ON
+        - name: vs-2022-static
+          env:
+              shared: OFF
+    configure_script:
+        - dir "C:\\Program Files (x86)\\Microsoft Visual Studio\\2022" x64
+        - call "C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\Community\\VC\\Auxiliary\\Build\\vcvarsall.bat" x64
+        - mkdir build
+        - cd build
+        # Download prebuilt CMake
+        # Download prebuilt Ninja
+        - /home/modules/misc/root/cmake/bin/cmake -GNinja -DBUILD_SHARED_LIBS=%shared% -DCMAKE_MAKE_PROGRAM:FILEPATH=$HOME/misc/root/cmake/bin/ninja ..
+    build_script:
+        - cd build
+        - /home/modules/misc/root/cmake/bin/cmake --build .
+    test_script:
+        - cd build
+        - /home/modules/misc/root/cmake/bin/ctest
