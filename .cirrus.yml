@@ -1,6 +1,6 @@
 linux_cmake_gcc_task:
     container:
-        image: benboeckel/cxx-modules-sandbox:20220225.0
+        image: benboeckel/cxx-modules-sandbox:20220419.0
     matrix:
         - name: gcc-12-shared
           env:

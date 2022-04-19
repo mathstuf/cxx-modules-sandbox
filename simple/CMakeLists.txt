@@ -1,4 +1,8 @@
-add_library(simple
-    duplicate.mpp
-    another.mpp
-    use.mpp)
+add_library(simple)
+target_sources(simple
+    PRIVATE
+        use.mpp
+    PRIVATE
+        FILE_SET cxx_modules TYPE CXX_MODULES FILES
+            duplicate.mpp
+            another.mpp)
