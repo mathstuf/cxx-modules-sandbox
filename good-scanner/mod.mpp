@@ -1,5 +1,7 @@
 export module mod;
 
-export int modfunc() {
+#include "good-scanner_export.h"
+
+export GOOD_SCANNER_EXPORT int modfunc() {
     return 0;
 }

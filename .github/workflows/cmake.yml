@@ -26,3 +26,23 @@ jobs:
         run: /home/modules/misc/root/cmake/bin/cmake --build build
       - name: test
         run: /home/modules/misc/root/cmake/bin/ctest --test-dir build
+  msvc2022:
+    runs-on: windows-2022
+    strategy:
+      matrix:
+        shared: [ON, OFF]
+    steps:
+      - name: checkout
+        uses: actions/checkout@v3
+      - name: download/cmake
+        run: powershell -ExecutionPolicy Bypass -File ${{ github.workspace }}/.github/ci/cmake.ps1
+      - name: Visual Studio toolchain environment
+        uses: TheMrMilchmann/setup-msvc-dev@v1
+        with:
+          arch: x64
+      - name: configure
+        run: ${{ github.workspace }}/.github/cmake/bin/cmake -GNinja -DBUILD_SHARED_LIBS:BOOL=${{ matrix.shared }} -S. -Bbuild
+      - name: build
+        run: ${{ github.workspace }}/.github/cmake/bin/cmake --build build
+      - name: test
+        run: ${{ github.workspace }}/.github/cmake/bin/ctest --test-dir build

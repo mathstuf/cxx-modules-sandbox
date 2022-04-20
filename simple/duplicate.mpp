@@ -1,5 +1,7 @@
 export module duplicate;
 
-export int m() {
+#include "simple_export.h"
+
+export SIMPLE_EXPORT int m() {
     return 0;
 }

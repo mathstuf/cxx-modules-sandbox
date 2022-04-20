@@ -1,4 +1,5 @@
 add_library(good-scanner)
+generate_export_header(good-scanner)
 target_sources(good-scanner
     PRIVATE
         # These should trip up `sed`-level scanners.
@@ -7,6 +8,11 @@ target_sources(good-scanner
         import.mpp
         export.mpp
     PUBLIC
+        FILE_SET headers TYPE HEADERS
+        BASE_DIRS
+            "${CMAKE_CURRENT_BINARY_DIR}"
+        FILES
+            "${CMAKE_CURRENT_BINARY_DIR}/good-scanner_export.h"
         FILE_SET cxx_modules TYPE CXX_MODULES FILES
             # Simple modules for use in other sources.
             mod.mpp
@@ -37,21 +43,35 @@ set_tests_properties(define-other
         WILL_FAIL TRUE)
 
 add_library(export-define-x)
+generate_export_header(export-define-x)
 target_sources(export-define-x
     PRIVATE
         import-define.mpp
     PUBLIC
+        FILE_SET headers TYPE HEADERS
+        BASE_DIRS
+            "${CMAKE_CURRENT_BINARY_DIR}"
+        FILES
+            "${CMAKE_CURRENT_BINARY_DIR}/export-define-x_export.h"
         FILE_SET cxx_modules TYPE CXX_MODULES FILES
             export-define.mpp)
 target_compile_definitions(export-define-x
+    PUBLIC
+        IS_X
     PRIVATE
         DEFINE=x)
 
 add_library(export-define-y)
+generate_export_header(export-define-y)
 target_sources(export-define-y
     PRIVATE
         import-define.mpp
     PUBLIC
+        FILE_SET headers TYPE HEADERS
+        BASE_DIRS
+            "${CMAKE_CURRENT_BINARY_DIR}"
+        FILES
+            "${CMAKE_CURRENT_BINARY_DIR}/export-define-y_export.h"
         FILE_SET cxx_modules TYPE CXX_MODULES FILES
             export-define.mpp)
 target_compile_definitions(export-define-y
