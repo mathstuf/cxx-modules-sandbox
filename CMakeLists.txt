@@ -6,6 +6,8 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 
 set(CMAKE_CXX_STANDARD 20)
+# See #10.
+# set(CMAKE_CXX_VISIBILITY_PRESET hidden)
 
 include(GenerateExportHeader)
 include(CTest)
