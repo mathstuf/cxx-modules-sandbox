@@ -3,6 +3,7 @@ project(cxxmodules CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 
+include(GenerateExportHeader)
 include(CTest)
 
 add_subdirectory(simple)

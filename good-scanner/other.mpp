@@ -1,5 +1,7 @@
 export module other;
 
-export int otherfunc() {
+#include "good-scanner_export.h"
+
+export GOOD_SCANNER_EXPORT int otherfunc() {
     return 1;
 }

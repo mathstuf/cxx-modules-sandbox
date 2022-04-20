@@ -1,5 +1,13 @@
 export module DEFINE;
 
-export int func() {
+#ifdef IS_X
+#include "export-define-x_export.h"
+#define library_export_macro EXPORT_DEFINE_X_EXPORT
+#else
+#include "export-define-y_export.h"
+#define library_export_macro EXPORT_DEFINE_Y_EXPORT
+#endif
+
+export library_export_macro int func() {
     return 0;
 }
