@@ -1,0 +1,28 @@
+name: CMake
+on:
+  push:
+    branches: master
+  pull_request:
+    types: [opened, reopened, synchronize]
+jobs:
+  gcc:
+    runs-on: ubuntu-20.04
+    container:
+      image: benboeckel/cxx-modules-sandbox:20220419.0
+      # Apparently the `checkout` action assumes root access.
+      options: --user root
+    strategy:
+      matrix:
+        shared: [ON, OFF]
+    steps:
+      - name: checkout
+        uses: actions/checkout@v3
+      - name: configure
+        run: /home/modules/misc/root/cmake/bin/cmake -GNinja -DBUILD_SHARED_LIBS:BOOL=${{ matrix.shared }} -DCMAKE_MAKE_PROGRAM:FILEPATH=/home/modules/misc/root/cmake/bin/ninja -S. -Bbuild
+        env:
+          CC: /home/modules/misc/root/gcc/bin/gcc
+          CXX: /home/modules/misc/root/gcc/bin/g++
+      - name: build
+        run: /home/modules/misc/root/cmake/bin/cmake --build build
+      - name: test
+        run: /home/modules/misc/root/cmake/bin/ctest --test-dir build
