@@ -17,6 +17,7 @@ add_subdirectory(duplicates)
 add_subdirectory(duplicates-same-dir)
 add_subdirectory(link-use)
 add_subdirectory(link-use-mask)
+add_subdirectory(msvc-naming)
 add_subdirectory(good-scanner)
 add_subdirectory(generated)
 
