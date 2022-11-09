@@ -1,6 +1,6 @@
 $erroractionpreference = "stop"
 
-$version = "cpp-modules-20220419.0"
+$version = "cpp-modules-20221108.0"
 $sha256sum = "9b47636fa03b8c61c3b30eaae629a813dc149eae924778dc582cb2bcc6b74eb3"
 $filename = "cmake-$version-win64"
 $tarball = "$filename.zip"
