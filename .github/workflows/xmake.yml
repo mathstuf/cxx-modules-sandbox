@@ -25,7 +25,29 @@ jobs:
         with:
           xmake-version: branch@dev
       - name: configure
-        run: xmake f -D --yes -k ${{ matrix.kind }}
+        run: xmake f -vD --yes -k ${{ matrix.kind }}
+      - name: build
+        run: xmake b
+      - name: test
+        run: xmake run
+  clang:
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        kind: [shared, static]
+    steps:
+      - name: checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Fetch clang
+        run: sudo apt install clang
+      - name: Install xmake
+        uses: xmake-io/github-action-setup-xmake@v1
+        with:
+          xmake-version: branch@dev
+      - name: configure
+        run: xmake f -vD --toolchain=clang --yes -k ${{ matrix.kind }}
       - name: build
         run: xmake b
       - name: test
@@ -45,7 +67,7 @@ jobs:
         with:
           xmake-version: branch@dev
       - name: configure
-        run: xmake f -D --yes -k ${{ matrix.kind }}
+        run: xmake f -vD --yes -k ${{ matrix.kind }}
       - name: build
         run: xmake b
       - name: test
@@ -65,7 +87,7 @@ jobs:
         with:
           xmake-version: branch@dev
       - name: configure
-        run: xmake f -D --yes -k ${{ matrix.kind }}
+        run: xmake f -vD --yes -k ${{ matrix.kind }}
       - name: build
         run: xmake b
       - name: test
