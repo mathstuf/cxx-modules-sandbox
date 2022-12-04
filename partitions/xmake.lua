@@ -3,5 +3,5 @@ target("partitions")
     add_rules("c++")
 
     add_files("module.mpp", "parta.mpp")
-    add_files("partb.mpp", "impl.mpp", {values = {["msvc.internalpartition"] = true}})
+    add_files("partb.mpp", "impl.mpp", {values = {["internalpartition"] = true}})
     set_policy("build.c++.modules", true)

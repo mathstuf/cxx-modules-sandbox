@@ -16,7 +16,7 @@ target("with_named_modules")
         os.cp("$(scriptdir)/mymodule_part_internal.cpp", path.join(module_path, "mymodule_part_internal.mpp"), {symlink = true})
 
         target:add("files", path.join(module_path, "*.mpp"))
-        target:fileconfig_add(path.join(module_path, "mymodule_part_internal.mpp"), {values = {["msvc.internalpartition"] = true}})
+        target:fileconfig_add(path.join(module_path, "mymodule_part_internal.mpp"), {values = {["internalpartition"] = true}})
     end)
 
     add_files("mymodule_impl.cpp", "main.cpp", "mymodule_part_impl.cpp")
