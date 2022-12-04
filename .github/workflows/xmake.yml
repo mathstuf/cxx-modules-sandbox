@@ -1,0 +1,73 @@
+name: XMake
+on:
+  push:
+    branches: master
+    paths-ignore:
+      - '.github/workflows/cmake.yml'
+      - '*.txt'
+      - 'LICENSE'
+      - 'README.md'
+  pull_request:
+    types: [opened, reopened, synchronize]
+jobs:
+  gcc:
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        kind: [shared, static]
+    steps:
+      - name: checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Install xmake
+        uses: xmake-io/github-action-setup-xmake@v1
+        with:
+          xmake-version: branch@dev
+      - name: configure
+        run: xmake f -D --yes -k ${{ matrix.kind }}
+      - name: build
+        run: xmake b
+      - name: test
+        run: xmake run
+  msvc2022:
+    runs-on: windows-2022
+    strategy:
+      matrix:
+        kind: [shared, static]
+    steps:
+      - name: checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Install xmake
+        uses: xmake-io/github-action-setup-xmake@v1
+        with:
+          xmake-version: branch@dev
+      - name: configure
+        run: xmake f -D --yes -k ${{ matrix.kind }}
+      - name: build
+        run: xmake b
+      - name: test
+        run: xmake run
+  msvc2019:
+    runs-on: windows-2019
+    strategy:
+      matrix:
+        kind: [shared, static]
+    steps:
+      - name: checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Install xmake
+        uses: xmake-io/github-action-setup-xmake@v1
+        with:
+          xmake-version: branch@dev
+      - name: configure
+        run: xmake f -D --yes -k ${{ matrix.kind }}
+      - name: build
+        run: xmake b
+      - name: test
+        run: xmake run
+
