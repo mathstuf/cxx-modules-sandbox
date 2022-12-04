@@ -20,14 +20,21 @@ jobs:
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
+      - name: Setup XMake cache
+        uses: actions/cache@v3
+        with:
+          path: '.xmake-cache'
+          key: gcc-ci
       - name: Install xmake
         uses: xmake-io/github-action-setup-xmake@v1
         with:
           xmake-version: branch@dev
+          actions-cache-folder: '.xmake-cache'
+          actions-cache-key: 'gcc-ci'
       - name: configure
         run: xmake f -vD --yes -k ${{ matrix.kind }}
       - name: build
-        run: xmake b
+        run: xmake b -vD
       - name: test
         run: xmake run
   clang:
@@ -42,14 +49,21 @@ jobs:
           fetch-depth: 0
       - name: Fetch clang
         run: sudo apt install clang
+      - name: Setup XMake cache
+        uses: actions/cache@v3
+        with:
+          path: '.xmake-cache'
+          key: clang-ci
       - name: Install xmake
         uses: xmake-io/github-action-setup-xmake@v1
         with:
           xmake-version: branch@dev
+          actions-cache-folder: '.xmake-cache'
+          actions-cache-key: 'clang-ci'
       - name: configure
         run: xmake f -vD --toolchain=clang --yes -k ${{ matrix.kind }}
       - name: build
-        run: xmake b
+        run: xmake b -vD
       - name: test
         run: xmake run
   msvc2022:
@@ -62,14 +76,21 @@ jobs:
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
+      - name: Setup XMake cache
+        uses: actions/cache@v3
+        with:
+          path: '.xmake-cache'
+          key: msvc2022-ci
       - name: Install xmake
         uses: xmake-io/github-action-setup-xmake@v1
         with:
           xmake-version: branch@dev
+          actions-cache-folder: '.xmake-cache'
+          actions-cache-key: 'msvc2022-ci'
       - name: configure
         run: xmake f -vD --yes -k ${{ matrix.kind }}
       - name: build
-        run: xmake b
+        run: xmake b -vD
       - name: test
         run: xmake run
   msvc2019:
@@ -82,14 +103,21 @@ jobs:
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
+      - name: Setup XMake cache
+        uses: actions/cache@v3
+        with:
+          path: '.xmake-cache'
+          key: msvc2019-ci
       - name: Install xmake
         uses: xmake-io/github-action-setup-xmake@v1
         with:
           xmake-version: branch@dev
+          actions-cache-folder: '.xmake-cache'
+          actions-cache-key: 'msvc2019-ci'
       - name: configure
         run: xmake f -vD --yes -k ${{ matrix.kind }}
       - name: build
-        run: xmake b
+        run: xmake b -vD
       - name: test
         run: xmake run
 
