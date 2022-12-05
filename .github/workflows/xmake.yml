@@ -36,7 +36,7 @@ jobs:
       - name: build
         run: xmake b -vD
       - name: test
-        run: xmake run
+        run: xmake run tests
   clang:
     runs-on: ubuntu-22.04
     strategy:
@@ -65,7 +65,7 @@ jobs:
       - name: build
         run: xmake b -vD
       - name: test
-        run: xmake run
+        run: xmake run tests
   msvc2022:
     runs-on: windows-2022
     strategy:
@@ -92,32 +92,5 @@ jobs:
       - name: build
         run: xmake b -vD
       - name: test
-        run: xmake run
-  msvc2019:
-    runs-on: windows-2019
-    strategy:
-      matrix:
-        kind: [shared, static]
-    steps:
-      - name: checkout
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-      - name: Setup XMake cache
-        uses: actions/cache@v3
-        with:
-          path: '.xmake-cache'
-          key: msvc2019-ci
-      - name: Install xmake
-        uses: xmake-io/github-action-setup-xmake@v1
-        with:
-          xmake-version: branch@dev
-          actions-cache-folder: '.xmake-cache'
-          actions-cache-key: 'msvc2019-ci'
-      - name: configure
-        run: xmake f -vD --yes -k ${{ matrix.kind }}
-      - name: build
-        run: xmake b -vD
-      - name: test
-        run: xmake run
+        run: xmake run tests
 

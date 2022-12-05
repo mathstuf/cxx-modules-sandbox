@@ -13,3 +13,5 @@ target("link-use-mask-reverse")
     add_files("*.mpp")
 
     add_deps("duplicates", "simple")
+
+    set_values("should_fail", true)

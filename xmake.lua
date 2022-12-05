@@ -5,9 +5,9 @@ add_rules("mode.debug", "mode.release")
 set_languages("c++latest", "clatest")
 set_values("msvc.modules.stdifcdir", true)
 
-local libraries = {
+local targets = {
     "duplicates",
-    "duplicates_same_dir",
+    "duplicates-same-dir",
     "simple",
     "partitions",
     "generated",
@@ -17,6 +17,8 @@ local libraries = {
     "named"
 }
 
-for _, name in ipairs(libraries) do
+for _, name in ipairs(targets) do
     includes(path.join(name, "xmake.lua"))
 end
+
+includes("tests.lua")
