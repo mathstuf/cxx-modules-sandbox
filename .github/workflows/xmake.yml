@@ -32,13 +32,17 @@ jobs:
           actions-cache-folder: '.xmake-cache'
           actions-cache-key: 'gcc-ci'
       - name: configure
-        run: xmake f -vD --yes -k ${{ matrix.kind }}
+        run: xmake f -D --yes -k ${{ matrix.kind }}
       - name: build
-        run: xmake b -vD
+        run: xmake b -D
       - name: test
         run: xmake run tests
-  clang:
+  gcc-trtbd:
     runs-on: ubuntu-22.04
+    container:
+      image: benboeckel/cxx-modules-sandbox:20221109.0
+      # Apparently the `checkout` action assumes root access.
+      options: --user root
     strategy:
       matrix:
         kind: [shared, static]
@@ -47,8 +51,38 @@ jobs:
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
-      - name: Fetch clang
-        run: sudo apt install clang
+      - name: Setup XMake cache
+        uses: actions/cache@v3
+        with:
+          path: '.xmake-cache'
+          key: gcc-trtbd-ci
+      - name: Install xmake
+        uses: xmake-io/github-action-setup-xmake@v1
+        with:
+          xmake-version: branch@dev
+          actions-cache-folder: '.xmake-cache'
+          actions-cache-key: 'gcc-trtbd-ci'
+      - name: configure
+        run: |
+          xmake f -D --root --toolchain=gcc --sdk=/home/modules/misc/root/gcc --yes -k ${{ matrix.kind }}
+      - name: build
+        run: xmake b -D --root
+      - name: test
+        run: xmake run --root tests
+  clang:
+    runs-on: ubuntu-22.04
+    container:
+      image: benboeckel/cxx-modules-sandbox:20221109.0
+      # Apparently the `checkout` action assumes root access.
+      options: --user root
+    strategy:
+      matrix:
+        kind: [shared, static]
+    steps:
+      - name: checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
       - name: Setup XMake cache
         uses: actions/cache@v3
         with:
@@ -61,11 +95,11 @@ jobs:
           actions-cache-folder: '.xmake-cache'
           actions-cache-key: 'clang-ci'
       - name: configure
-        run: xmake f -vD --toolchain=clang --yes -k ${{ matrix.kind }}
+        run: xmake f -D --root --toolchain=llvm --sdk=/home/modules/misc/root/clang --yes -k ${{ matrix.kind }}
       - name: build
-        run: xmake b -vD
+        run: xmake b -D --root
       - name: test
-        run: xmake run tests
+        run: xmake run --root tests
   msvc2022:
     runs-on: windows-2022
     strategy:
@@ -88,9 +122,9 @@ jobs:
           actions-cache-folder: '.xmake-cache'
           actions-cache-key: 'msvc2022-ci'
       - name: configure
-        run: xmake f -vD --yes -k ${{ matrix.kind }}
+        run: xmake f -D --yes -k ${{ matrix.kind }}
       - name: build
-        run: xmake b -vD
+        run: xmake b -D
       - name: test
         run: xmake run tests
 
