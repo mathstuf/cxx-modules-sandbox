@@ -6,3 +6,10 @@ target("use-ext-mods")
 
     add_files("*.mpp")
     add_packages("extlib")
+
+    on_config(function(target)
+        if target:has_tool("cxx", "gcc", "gxx") then
+            print("GCC trtbd build ! disabling use-ext-mods target")
+            target:set("default", false)
+        end
+    end)
