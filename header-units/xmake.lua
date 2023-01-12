@@ -1,2 +1,2 @@
--- includes("external/xmake.lua") external headerunit import supported but not external module atm
+includes("external/xmake.lua")
 includes("internal/xmake.lua")

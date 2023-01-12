@@ -3,7 +3,7 @@ set_project("cxx-modules-sandbox")
 add_rules("mode.debug", "mode.release")
 
 set_languages("c++latest", "clatest")
-set_values("msvc.modules.stdifcdir", true)
+add_repositories("repo repo")
 
 local targets = {
     "duplicates",
