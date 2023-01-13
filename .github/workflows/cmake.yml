@@ -2,6 +2,11 @@ name: CMake
 on:
   push:
     branches: master
+    paths-ignore:
+      - '.github/workflows/xmake.yml'
+      - '*.lua'
+      - 'LICENSE'
+      - 'README.md'
   pull_request:
     types: [opened, reopened, synchronize]
 jobs:
@@ -23,7 +28,7 @@ jobs:
           CC: /home/modules/misc/root/gcc/bin/gcc
           CXX: /home/modules/misc/root/gcc/bin/g++
       - name: build
-        run: /home/modules/misc/root/cmake/bin/cmake --build build
+        run: /home/modules/misc/root/cmake/bin/cmake --build build --verbose
       - name: test
         run: /home/modules/misc/root/cmake/bin/ctest --test-dir build
   msvc2022:

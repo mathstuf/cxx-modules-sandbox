@@ -1,0 +1,19 @@
+#pragma once
+
+#ifdef ${NAME}_STATIC_DEFINE
+# define ${NAME}_EXPORT
+# define ${NAME}_NO_EXPORT
+#else
+# ifdef _WIN32
+#  ifdef ${NAME}_BUILD
+#   define ${NAME}_EXPORT __declspec(dllexport)
+#   define ${NAME}_NO_EXPORT
+#  else
+#   define ${NAME}_EXPORT __declspec(dllimport)
+#   define ${NAME}_NO_EXPORT
+#  endif
+# else
+#  define ${NAME}_EXPORT [[gnu::visibility("default")]]
+#  define ${NAME}_NO_EXPORT [[gnu::visibility("hidden")]]
+# endif
+#endif

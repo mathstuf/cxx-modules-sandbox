@@ -1,0 +1,196 @@
+name: XMake
+on:
+  push:
+    branches: master
+    paths-ignore:
+      - '.github/workflows/cmake.yml'
+      - '*.txt'
+      - 'LICENSE'
+      - 'README.md'
+  pull_request:
+    types: [opened, reopened, synchronize]
+jobs:
+  gcc:
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        kind: [shared, static]
+    steps:
+      - name: checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Setup XMake cache
+        uses: actions/cache@v3
+        with:
+          path: '.xmake-cache'
+          key: gcc-ci
+
+      - name: Install xmake
+        uses: xmake-io/github-action-setup-xmake@v1
+        with:
+          xmake-version: branch@dev
+          actions-cache-folder: '.xmake-cache'
+          actions-cache-key: 'gcc-ci'
+
+      - name: configure
+        run: xmake f -D --yes -k ${{ matrix.kind }}
+
+      - name: build
+        run: xmake b -vD
+
+      - name: test
+        run: xmake run tests
+
+
+  gcc-trtbd:
+    runs-on: ubuntu-22.04
+    container:
+      image: benboeckel/cxx-modules-sandbox:20221109.0
+      # Apparently the `checkout` action assumes root access.
+      options: --user root
+    strategy:
+      matrix:
+        kind: [shared, static]
+    steps:
+      - name: checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Setup XMake cache
+        uses: actions/cache@v3
+        with:
+          path: '.xmake-cache'
+          key: gcc-trtbd-ci
+
+      - name: Install xz
+        run: |
+          git clone https://github.com/tukaani-project/xz.git
+          cd xz
+          mkdir build
+          cd build
+          cmake -G "Unix Makefiles" ..
+          cmake --build . --parallel
+          cmake --install .
+
+      - name: Install 7zip
+        run: |
+          curl https://www.7-zip.org/a/7z2201-linux-x64.tar.xz --output 7z.tar.xz
+          mkdir 7z
+          tar -xvf 7z.tar.xz -C 7z
+          cd 7z
+          cp 7zz /usr/bin/7z
+          chmod u+x /usr/bin/7z
+
+      - name: Install xmake
+        uses: xmake-io/github-action-setup-xmake@v1
+        with:
+          xmake-version: branch@dev
+          actions-cache-folder: '.xmake-cache'
+          actions-cache-key: 'gcc-trtbd-ci'
+
+      - name: configure
+        run: |
+          export PATH="/home/modules/misc/root/gcc/bin:$PATH"
+          xmake f -D --root --toolchain=gcc --sdk=/home/modules/misc/root/gcc --yes -k ${{ matrix.kind }}
+
+      - name: build
+        run: xmake b --root -vD
+
+      - name: test
+        run: xmake run --root tests
+
+
+  clang:
+    runs-on: ubuntu-22.04
+    container:
+      image: benboeckel/cxx-modules-sandbox:20221109.0
+      # Apparently the `checkout` action assumes root access.
+      options: --user root
+    strategy:
+      matrix:
+        kind: [shared, static]
+    steps:
+      - name: checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Setup XMake cache
+        uses: actions/cache@v3
+        with:
+          path: '.xmake-cache'
+          key: clang-ci
+
+      - name: Install xz
+        run: |
+          git clone https://github.com/tukaani-project/xz.git
+          cd xz
+          mkdir build
+          cd build
+          cmake -G "Unix Makefiles" ..
+          cmake --build . --parallel
+          cmake --install .
+
+      - name: Install 7zip
+        run: |
+          curl https://www.7-zip.org/a/7z2201-linux-x64.tar.xz --output 7z.tar.xz
+          mkdir 7z
+          tar -xvf 7z.tar.xz -C 7z
+          cd 7z
+          cp 7zz /usr/bin/7z
+          chmod u+x /usr/bin/7z
+
+      - name: Install xmake
+        uses: xmake-io/github-action-setup-xmake@v1
+        with:
+          xmake-version: branch@dev
+          actions-cache-folder: '.xmake-cache'
+          actions-cache-key: 'clang-ci'
+      - name: configure
+        run: |
+          export PATH="/home/modules/misc/root/clang/bin:$PATH"
+          xmake f -D --root --toolchain=clang --sdk=/home/modules/misc/root/clang --yes -k ${{ matrix.kind }}
+
+      - name: build
+        run: xmake b --root -vD
+
+      - name: test
+        run: xmake run --root tests
+
+
+  msvc2022:
+    runs-on: windows-2022
+    strategy:
+      matrix:
+        kind: [shared, static]
+    steps:
+      - name: checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Setup XMake cache
+        uses: actions/cache@v3
+        with:
+          path: '.xmake-cache'
+          key: msvc2022-ci
+
+      - name: Install xmake
+        uses: xmake-io/github-action-setup-xmake@v1
+        with:
+          xmake-version: branch@dev
+          actions-cache-folder: '.xmake-cache'
+          actions-cache-key: 'msvc2022-ci'
+
+      - name: configure
+        run: xmake f -D --yes -k ${{ matrix.kind }}
+
+      - name: build
+        run: xmake b -vD
+
+      - name: test
+        run: xmake run tests
+
