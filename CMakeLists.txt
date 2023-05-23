@@ -39,11 +39,11 @@ add_subdirectory(duplicates)
 add_subdirectory(duplicates-same-dir)
 add_subdirectory(link-use)
 add_subdirectory(link-use-mask)
-#TODO add_subdirectory(good-scanner)
+#TODO(CK): add_subdirectory(good-scanner)
 add_subdirectory(generated)
 
-# NOTE: This use CXX_MODULE_INTERNAL_PARTITIONS?
-#FIXME add_subdirectory(partitions)
+# NOTE: This dit use of CXX_MODULE_INTERNAL_PARTITIONS?
+#FIXME: add_subdirectory(partitions)
 
 # The CMake APIs used here are not yet implemented!
 # add_subdirectory(header-units)
