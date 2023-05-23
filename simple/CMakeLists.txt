@@ -2,8 +2,8 @@ add_library(simple)
 generate_export_header(simple)
 target_sources(simple
     PRIVATE
-        use.mpp
-    PRIVATE
+        use.cpp
+    PUBLIC
         FILE_SET headers TYPE HEADERS
         BASE_DIRS
             "${CMAKE_CURRENT_BINARY_DIR}"
