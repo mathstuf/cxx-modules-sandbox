@@ -10,13 +10,13 @@ function (generate name)
 endfunction ()
 
 generate(gen-export.mpp)
-generate(gen-import.mpp)
+generate(gen-import.cpp)
 
 add_executable(generated)
 target_sources(generated
     PRIVATE
-        "${CMAKE_CURRENT_BINARY_DIR}/gen-import.mpp"
-        use.mpp
+        "${CMAKE_CURRENT_BINARY_DIR}/gen-import.cpp"
+        use.cpp
     PRIVATE
         FILE_SET cxx_modules TYPE CXX_MODULES
         BASE_DIRS
