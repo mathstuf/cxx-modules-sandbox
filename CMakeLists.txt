@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.26 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.26...4.5 FATAL_ERROR)
 project(cxxmodules CXX)
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
@@ -30,6 +30,16 @@ elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
 endif()
 
 include(GenerateExportHeader)
+
+include(FetchContent)
+FetchContent_Declare(
+    fmt
+    GIT_REPOSITORY https://github.com/fmtlib/fmt.git
+    GIT_TAG 12.2.1
+    SYSTEM
+    OVERRIDE_FIND_PACKAGE
+)
+FetchContent_MakeAvailable(fmt)
 
 # include(CTest)
 enable_testing()
