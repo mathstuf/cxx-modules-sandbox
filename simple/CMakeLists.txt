@@ -3,7 +3,9 @@ generate_export_header(simple)
 target_sources(simple
     PRIVATE
         use.mpp
-    PRIVATE
+    # CMake Error: Unable to use module 'duplicate' as it is 'PRIVATE'
+    # and therefore not accessible outside of its owning target.
+    PUBLIC
         FILE_SET headers TYPE HEADERS
         BASE_DIRS
             "${CMAKE_CURRENT_BINARY_DIR}"
